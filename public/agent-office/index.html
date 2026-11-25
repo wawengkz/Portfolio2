@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Silkscreen:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Cinzel:wght@500;700&family=Pinyon+Script&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a cosy office sim; the office is a small pixel world you watch at work.
+   IDEA: an isometric pixel-art office floor from a tycoon game, with the agents as tiny pixel people.
+   PICTURE: the full-width isometric floor: wood planks, brick walls, glass rooms, server racks, ping-pong, kitchen.
+   COLOUR and TYPE: night-olive ground, warm wood, brick, lime HUD accent; Silkscreen for HUD and bubbles, Pixelify Sans for reading.
+   LAYOUT: compact title bar, the game viewport as hero, then team windows and Pia's studio below. */
+:root{color-scheme:dark;--bg:#1b1f1a;--panel:#252a23;--panel2:#323a2d;--line:#465040;--ink:#eef2dc;--soft:#a9b293;--lime:#d8f075;--wall:#0d100c;--floor:#1e2330;
+--mara:#ff6b5e;--theo:#4f9bff;--juno:#b57bff;--ivo:#2ec4a0;--pia:#ff9b38;--sun:#d8f075;--card:#252a23}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 "Pixelify Sans",system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(14px,2.4vw,28px) max(3vw,12px)}
+header{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:end;justify-content:space-between;max-width:1500px;margin:0 auto}
+h1{font:700 clamp(24px,3.4vw,38px)/1.05 "Silkscreen",monospace;margin:0;color:var(--lime);text-shadow:3px 3px 0 var(--wall);text-wrap:balance}
+header p{margin:6px 0 0;color:var(--soft);max-width:64ch}
+h2{font:700 17px/1.2 "Silkscreen",monospace;margin:10px 0 6px;color:var(--lime)}
+label{font-weight:600}
+textarea,input,select{width:100%;font:16px/1.45 "Pixelify Sans",system-ui,sans-serif;color:var(--ink);background:#151913;border:2px solid var(--line);border-radius:0;padding:9px 11px;resize:vertical;box-shadow:inset 2px 2px 0 rgba(0,0,0,.4)}
+select{width:auto;min-height:44px;padding:0 10px}
+textarea:focus,input:focus,select:focus,button:focus-visible{outline:3px solid var(--lime);outline-offset:1px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:700 13px/1.1 "Silkscreen",monospace;min-height:44px;padding:0 14px;border:2px solid var(--wall);border-radius:0;background:var(--panel2);color:var(--ink);cursor:pointer;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35),0 3px 0 var(--wall)}
+button:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 -1px 0 rgba(0,0,0,.35),0 1px 0 var(--wall)}
+button.go{background:var(--lime);color:#1b1f1a}
+button:disabled{opacity:.45;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{min-height:34px;font:500 15px/1.2 "Pixelify Sans",sans-serif;padding:4px 10px;background:#1d2219;border-color:var(--line);box-shadow:0 2px 0 var(--wall);text-align:left}
+.hint{font-size:15px;color:var(--soft)}
+.check{display:flex;gap:8px;align-items:center;font-weight:500;font-size:16px}
+.check input{width:20px;height:20px;accent-color:var(--lime)}
+/* game viewport */
+.vp{position:relative;max-width:1500px;margin:0 auto;background:radial-gradient(ellipse at 50% 50%,#283024,#151813 72%);border:3px solid var(--wall);box-shadow:0 0 0 3px var(--line),0 10px 0 var(--wall);overflow:hidden;user-select:none}
+#cv{display:block;margin:0 auto;image-rendering:pixelated;cursor:pointer}
+.ov{position:absolute;inset:0;pointer-events:none}
+.ag{position:absolute;left:0;top:0;display:grid;justify-items:center;gap:3px;will-change:transform}
+.bub{background:#171b28;color:#e8ecff;border:2px solid #c9d1ff;font:12px/1.3 "Silkscreen",monospace;padding:5px 7px;max-width:170px;box-shadow:3px 3px 0 rgba(0,0,0,.55);display:none;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;visibility:hidden}
+.bub.show{visibility:visible}
+.nm{pointer-events:auto;min-height:0;padding:2px 5px;font:10px/1.2 "Silkscreen",monospace;background:#10131a;color:#cfd6ff;border:1px solid #3c4462;box-shadow:none}
+.nm.sel{background:var(--lime);color:#111;border-color:var(--wall)}
+.hud{position:absolute;left:0;right:0;display:flex;align-items:center;gap:12px;padding:8px 12px;font:13px/1.2 "Silkscreen",monospace;pointer-events:none}
+.hud.top{top:0;justify-content:center}.hud.bot{bottom:0;justify-content:space-between;flex-wrap:wrap}
+.heads{display:flex;padding-left:6px}
+.heads i{width:24px;height:24px;border:2px solid var(--wall);margin-left:-6px;display:grid;place-items:center;font:11px/1 "Silkscreen",monospace;color:#111;font-style:normal}
+.tab{background:var(--lime);color:#111;padding:4px 10px;border:2px solid var(--wall)}
+.mode{display:flex;align-items:center;gap:8px;background:#151913;border:2px solid var(--line);padding:4px 8px}
+.dot{width:10px;height:10px;background:var(--soft)}.dot.on{background:var(--lime)}
+@media(max-width:600px){.hud .tip,.hud .tab{display:none}.bub{max-width:120px;font-size:10px}.nm{font-size:9px}}
+/* windows below the floor */
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;max-width:1500px;margin:0 auto}
+@media(max-width:900px){main{grid-template-columns:minmax(0,1fr)}}
+.win{background:var(--panel);border:2px solid var(--wall);box-shadow:0 0 0 2px var(--line),0 6px 0 var(--wall);padding:4px 16px 16px}
+aside{display:flex;flex-direction:column;gap:20px}
+form{display:grid;gap:8px}
+.roster{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.who{display:flex;gap:10px;align-items:center;padding:8px 10px;background:#1d2219;border:2px solid var(--line);box-shadow:0 3px 0 var(--wall);text-align:left;font:16px/1.25 "Pixelify Sans",sans-serif;color:var(--ink);min-height:52px}
+.who.sel{border-color:var(--lime)}
+.who i{width:14px;height:14px;flex:none;border:2px solid var(--wall)}
+.who b{display:block;font-size:16px}.who small{display:block;font-size:14px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel{margin-top:14px;border-top:2px dashed var(--line);padding-top:4px}
+.panel textarea{min-height:90px}
+.feed{max-height:520px;overflow:auto}
+.msg{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;padding:10px 0;border-top:2px dashed var(--line)}
+.msg .av{width:28px;height:28px;border:2px solid var(--wall);color:#111;font:11px/1 "Silkscreen",monospace;display:grid;place-items:center}
+.msg.you .av{background:var(--ink)}
+.msg .meta{font-size:15px}.msg .meta span{color:var(--soft);margin-left:6px}
+.msg .txt{white-space:pre-wrap;font-size:16px;overflow-wrap:anywhere}
+.msg img{max-width:160px;margin-top:6px;display:block;border:2px solid var(--wall)}
+.empty{color:var(--soft);padding:12px 0}
+.out .txt{white-space:pre-wrap;max-width:75ch}
+/* image studio */
+.studio{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;max-width:1500px;margin:0 auto}
+@media(max-width:900px){.studio{grid-template-columns:minmax(0,1fr)}}
+.card{display:grid;gap:10px;align-content:start}
+.card>p{margin:0;color:var(--soft);font-size:16px}
+.drop{border:2px dashed var(--line);padding:18px;text-align:center;cursor:pointer;color:var(--soft);font-weight:500}
+.drop:focus-within{outline:3px solid var(--lime)}
+.drop.over{border-color:var(--pia);color:var(--ink)}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
+.thumbs,.gal{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.thumbs button,.gal button{flex:none;width:68px;height:68px;padding:0;border:3px solid var(--line);box-shadow:none}
+.thumbs button.sel,.gal button.sel{border-color:var(--pia)}
+.thumbs img,.gal img{width:100%;height:100%;object-fit:cover;display:block}
+.stage{background:#151913;border:2px solid var(--line);display:grid;place-items:center;min-height:240px;padding:10px}
+.stage canvas,.stage img{max-width:100%;max-height:440px;width:auto;height:auto;display:block;box-shadow:4px 4px 0 var(--wall)}
+.stage .empty{text-align:center}
+.sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:4px 16px}
+.sliders label{font-weight:500;font-size:15px;display:grid}
+input[type=range]{padding:0;accent-color:var(--pia);min-height:32px;border:0;background:none;box-shadow:none}
+.hs{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px}
+@media(max-width:900px){.hs{grid-template-columns:minmax(0,1fr)}}
+.hs>div{display:grid;gap:8px;align-content:start}
+.swatches{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.swatches label{display:grid;gap:4px;font-weight:500;font-size:14px}
+input[type=color]{height:44px;padding:2px;cursor:pointer}
+#logoPrev img{max-height:70px;max-width:220px;background:#3a4436;padding:6px;border:2px solid var(--line)}
+.week{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-top:12px}
+.wc{background:#1d2219;border:2px solid var(--line);padding:10px;display:grid;gap:8px;align-content:start}
+.wc img{width:100%;object-fit:cover;display:block;border:2px solid var(--wall)}
+.wc h3{font:700 14px/1.2 "Silkscreen",monospace;margin:0;color:var(--lime)}
+.wc .pl{font-size:14px;color:var(--soft)}
+.wc textarea{font-size:14px;min-height:110px}
+.wc .row select{flex:1 1 100px;font-size:14px}
+.wc button{min-height:38px;font-size:11px;padding:0 10px}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+.ph{position:relative;border:2px solid var(--line)}
+.ph img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.ph button{position:absolute;top:2px;right:2px;min-height:0;width:24px;height:24px;padding:0;font-size:13px;box-shadow:none}
+.wc .cap{white-space:pre-wrap;font-size:14px;max-height:150px;overflow:auto;background:#151913;border:2px solid var(--line);padding:8px}
+.wc .wait{aspect-ratio:4/5;min-height:200px;display:grid;place-items:center;text-align:center;padding:12px;background:#151913;border:2px dashed var(--line);color:var(--soft);font-size:14px}
+.wc label.pl{display:grid;gap:4px}.wc .sz{width:100%;font-size:14px;min-height:38px}
+.wc [hidden]{display:none!important}
+.wc .zoom{display:block;padding:0;min-height:0;border:2px solid var(--wall);background:none;box-shadow:none;cursor:zoom-in}
+.wc .zoom img{border:0;display:block;width:100%}
+.wc .zoom:hover img{filter:brightness(1.06)}
+.lb{position:fixed;inset:0;z-index:50;background:rgba(10,12,9,.94);display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.lb[hidden]{display:none}
+.lbBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;border-bottom:2px solid var(--line);background:var(--panel)}
+.lbBar #lbPct{font:13px "Silkscreen",monospace;min-width:54px;text-align:center}
+.lbBar #lbX{margin-left:auto}
+.lbStage{position:relative;overflow:hidden;cursor:grab;touch-action:none}
+.lbStage.drag{cursor:grabbing}
+#lbImg{position:absolute;left:50%;top:50%;transform-origin:center;box-shadow:0 0 0 2px var(--wall),8px 8px 0 rgba(0,0,0,.5);user-select:none;max-width:none}
+.lbTip{margin:0;padding:6px 14px;font-size:14px;color:var(--soft);text-align:center}
+@media(max-width:600px){.lbTip{display:none}}
+</style>
+</head>
+<body>
+<a href="/projects" style="position:fixed;left:12px;top:12px;z-index:60;font:700 12px/1 Silkscreen,monospace;background:#d8f075;color:#1b1f1a;border:2px solid #0d100c;padding:10px 12px;text-decoration:none;box-shadow:0 3px 0 #0d100c">&larr; Back to portfolio</a>
+<header class="band">
+  <div>
+    <h1>Back office, floor 1</h1>
+    <p>Hand Pia your photos, choose a size and press one button. The team plans, writes, reviews and designs each post in your house style, then updates it from your client's feedback.</p>
+  </div>
+
+</header>
+
+<section class="band" style="padding-top:0">
+  <div class="vp" id="vp" aria-label="Isometric pixel office. Each agent is also listed in the team window below.">
+    <canvas id="cv"></canvas>
+    <div class="ov" id="ov"></div>
+    <div class="hud top"><span class="heads" id="heads"></span><span>5 agents</span></div>
+    <div class="hud bot"><span class="mode"><i class="dot" id="dot"></i><span id="modeTxt">Connecting to Claude…</span></span><span class="tab">Floor 1 · 5 agents</span><span class="tip">Click an agent to talk to them</span></div>
+  </div>
+</section>
+
+<main class="band" style="padding-top:8px">
+  <section class="win">
+    <h2>Team</h2>
+    <div class="roster" id="roster"></div>
+    <div class="panel" id="panel"></div>
+  </section>
+
+  <aside>
+    <form id="taskForm" class="win">
+      <h2>Make a post</h2>
+      <label for="task">What's this post about?</label>
+      <textarea id="task" rows="3" placeholder="Optional. Leave it empty and the team picks the next kind of post from your weekly mix. For example: gift vouchers for Christmas."></textarea>
+      <label for="size">Image size</label>
+      <select id="size" style="width:100%"></select>
+      <span style="font-weight:600">Photos for Pia</span>
+      <label class="drop" id="drop"><input type="file" id="files" accept="image/*" multiple>Drop photos here or choose files</label>
+      <p class="hint" id="libNote" style="margin:0"></p>
+      <div class="lib" id="lib"></div>
+      <div class="row">
+        <button class="go" id="run" type="submit">Make the post</button>
+        <button id="stop" type="button" disabled>Stop</button>
+        <span class="hint" id="status"></span>
+      </div>
+      <p class="hint" style="margin:0">Mara plans it, Theo finds the angle, Juno writes it, Ivo reviews it against your house style and your client's taste, and Pia designs it on your photo.</p>
+    </form>
+    <div class="feed win" id="feed" aria-live="polite">
+      <h2>Team channel</h2>
+      <div class="empty" id="empty">Nothing yet. Start a task and the team's messages appear here.</div>
+    </div>
+  </aside>
+</main>
+
+
+
+
+<section class="band" style="padding-top:0" id="postsSec">
+  <div class="win" style="max-width:1500px;margin:0 auto">
+    <h2>Posts</h2>
+    <p class="hint" style="margin:0">Newest first. Tell the team what your client thinks of a post and they'll update it. Their feedback is remembered for every post after.</p>
+    <div class="week" id="posts"></div>
+  </div>
+</section>
+
+
+
+<section class="band" style="padding-top:0">
+  <div class="win" style="max-width:1500px;margin:0 auto">
+    <h2>House style</h2>
+    <p class="hint" style="margin-top:0">Every agent reads this before writing or designing anything. It's set up from the example posts you shared. Edit it any time; the page remembers your changes.</p>
+    <div class="hs">
+      <div><label for="guide">Style guide</label><textarea id="guide" rows="18"></textarea>
+        <div class="row"><button type="button" id="guideReset">Reset to the example style</button></div></div>
+      <div>
+        <label for="since">Year founded, shown under your name</label><input id="since" inputmode="numeric" placeholder="For example 1945" autocomplete="off">
+        <label for="logoIn">Logo</label>
+        <label class="drop"><input type="file" id="logoIn" accept="image/*">Add your logo. A light PNG with a transparent background works best on photos.</label>
+        <div class="row" id="logoRow" hidden><span id="logoPrev"></span><button type="button" id="logoClear">Remove logo</button></div>
+        <span style="font-weight:600">Brand colours</span>
+        <div class="swatches">
+          <label>Panel<input type="color" id="cSlate" value="#2f4b50"></label>
+          <label>Accent<input type="color" id="cGold" value="#c9a45c"></label>
+          <label>Light<input type="color" id="cCream" value="#f3ede2"></label>
+          <label>Deep red<input type="color" id="cWine" value="#7a1f2b"></label>
+        </div>
+        <label for="reviews">Real customer reviews</label>
+        <textarea id="reviews" rows="5" placeholder="One per line: the review, a dash, then the customer's name"></textarea>
+        <label for="taste">Your client's taste</label>
+        <textarea id="taste" rows="5" placeholder="Filled in from the feedback you give on posts. You can edit it."></textarea>
+        <p class="hint" style="margin:0">Review posts only use reviews from this list. Without one, the post shows a placeholder for you to fill in.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="lb" class="lb" hidden role="dialog" aria-modal="true" aria-label="Post at full size">
+  <div class="lbBar">
+    <button type="button" id="lbOut" aria-label="Zoom out">−</button><span id="lbPct">100%</span><button type="button" id="lbIn" aria-label="Zoom in">+</button>
+    <button type="button" id="lbFit">Fit</button><button type="button" id="lb1">Actual size</button>
+    <button type="button" id="lbDl">Download</button><span class="hint" id="lbNote"></span>
+    <button type="button" id="lbX" class="go">Close</button>
+  </div>
+  <div class="lbStage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
+  <p class="lbTip">Scroll or use + and − to zoom, drag to move, double-click to switch between fit and actual size, Esc to close.</p>
+</div>
+<script>
+{
+const AG = {
+  mara:{name:"Mara",role:"Team lead",color:"#ff6b5e",hair:"#3b2418",home:[3,3.9],seat:[11,1.5],
+    brief:"You are Mara, the team lead of a small studio. You turn a request into a clear plan, keep everyone on scope, and sign off on the final work. Be crisp and warm."},
+  theo:{name:"Theo",role:"Researcher",color:"#4f9bff",hair:"#1d1d24",home:[4,11.3],seat:[14,1.5],
+    brief:"You are Theo, the studio researcher. You gather the facts, angles, audience needs and examples the writer will need. You flag anything uncertain instead of inventing it."},
+  juno:{name:"Juno",role:"Writer",color:"#b57bff",hair:"#c9542e",home:[10,11.3],seat:[10.8,3.4],
+    brief:"You are Juno, the studio writer. You turn notes into clear, well-structured, finished prose that fits the audience and format asked for."},
+  pia:{name:"Pia",role:"Image designer",color:"#ff9b38",hair:"#2b1b12",home:[16,11.3],seat:[12.5,4.1],
+    brief:"You are Pia, the studio image designer. You prepare product photos for social posts, write captions that make people want to visit, and design clean, elegant graphics with strong readable type."},
+  ivo:{name:"Ivo",role:"Reviewer",color:"#2ec4a0",hair:"#e8d27a",home:[22,11.3],seat:[14.2,3.4],
+    brief:"You are Ivo, the studio reviewer. You check drafts against the brief for accuracy, clarity, tone and gaps, and give short, specific, numbered fixes."}
+};
+const IDS = Object.keys(AG);
+const shop = () => "our tailoring shop";
+const PRESETS = ["Plan a week of Instagram posts for wedding season","Write a notice about our new holiday opening hours","Explain our alteration prices to first-time customers","Draft a thank-you message for customers who collected a suit"];
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let sample = null, ctrl = null, selected = "mara";
+const state = Object.fromEntries(IDS.map(i=>[i,{pos:AG[i].home,status:"At desk",think:false}]));
+
+$("roster").innerHTML = IDS.map(i=>`<button class="who" id="w-${i}" type="button"><i style="background:${AG[i].color}"></i><span><b>${AG[i].name}, ${AG[i].role.toLowerCase()}</b><small id="s-${i}">At desk</small></span></button>`).join("");
+$("heads").innerHTML = IDS.map(i=>`<i style="background:${AG[i].color}">${AG[i].name[0]}</i>`).join("");
+$("ov").innerHTML = IDS.map(i=>`<div class="ag" id="g-${i}"><div class="bub" id="b-${i}"></div><button class="nm" id="n-${i}" type="button" aria-label="${AG[i].name}, ${AG[i].role}">${AG[i].name}</button></div>`).join("");
+IDS.forEach(i=>{$("n-"+i).onclick=()=>select(i);$("w-"+i).onclick=()=>select(i);});
+
+/* ---------- isometric pixel office ---------- */
+const GX=27,GY=14,cv=$("cv"),cx=cv.getContext("2d");
+let TW=14,TH=7,S=2,ox=0,oy=0,U=1;
+const calm=matchMedia("(prefers-reduced-motion: reduce)");
+const mot=Object.fromEntries(IDS.map(i=>[i,{x:AG[i].home[0],y:AG[i].home[1],target:AG[i].home,path:[],done:[],t:0}]));
+const P=(x,y,z=0)=>[Math.round(ox+(x-y)*TW/2),Math.round(oy+(x+y)*TH/2-z)];
+function poly(pts,f){cx.fillStyle=f;cx.beginPath();pts.forEach((p,k)=>k?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1]));cx.closePath();cx.fill();}
+function box(x,y,w,d,h,c,z=0){
+  poly([P(x,y+d,z),P(x+w,y+d,z),P(x+w,y+d,z+h),P(x,y+d,z+h)],c[1]);
+  poly([P(x+w,y,z),P(x+w,y+d,z),P(x+w,y+d,z+h),P(x+w,y,z+h)],c[2]);
+  poly([P(x,y,z+h),P(x+w,y,z+h),P(x+w,y+d,z+h),P(x,y+d,z+h)],c[0]);
+}
+const wallY=(x1,x2,z1,z2,f)=>poly([P(x1,0,z1),P(x2,0,z1),P(x2,0,z2),P(x1,0,z2)],f);
+const wallX=(y1,y2,z1,z2,f)=>poly([P(0,y1,z1),P(0,y2,z1),P(0,y2,z2),P(0,y1,z2)],f);
+function ell(x,y,r,z,f){const [px,py]=P(x,y,z);cx.fillStyle=f;cx.beginPath();cx.ellipse(px,py,r*TW*.707,r*TH*.707,0,0,7);cx.fill();}
+const C={wood:["#c9996a","#bd8c5e","#b48353"],plank:"#9c6d44",room:["#232a3d","#1f2536"],kit:["#d9d6cc","#bdb9ae"],
+  brick:["#9a4a2a","#7a3a20","#5e2c18"],gwall:["#9aa0a8","#7c828b","#60656d"],desk:["#b37c4b","#8d5d34","#71492a"],dark:["#3b4150","#2a2f3a","#1f232c"],
+  white:["#eef0f2","#cfd3d8","#b3b8bf"],green:["#2f9e6a","#237a51","#1b5f3f"],pot:["#c86a3c","#a4532c","#834222"],leaf:["#5cc26f","#3e9a52","#2f7a40"],
+  chair:["#4a5160","#383e4a","#2b303a"],red:["#b8453c","#963530","#7a2a26"],teal:["#3a9a9a","#2c7a7a","#215e5e"],glass:"rgba(170,200,230,.18)"};
+const inMara=(x,y)=>x<7&&y<5,inMeet=(x,y)=>x>=9&&x<16&&y<5,inKit=(x,y)=>x>=18&&y<4;
+const DESKS={mara:[2,2.2],theo:[3,9.6],juno:[9,9.6],pia:[15,9.6],ivo:[21,9.6]};
+function furniture(t){
+  const L=[],add=(k,f)=>L.push([k,f]);
+  const wh=TW*.62;
+  // glass room walls (1-tile segments so depth sorting works)
+  const seg=(x,y,w,d)=>add(x+w/2+y+d/2,()=>{box(x,y,w,d,wh,C.gwall);poly([P(x,y+d,wh),P(x+w,y+d,wh),P(x+w,y+d,wh+3),P(x,y+d,wh+3)],C.glass);});
+  for(let y=0;y<5;y++){seg(6.85,y,.15,1);seg(8.85,y,.15,1);seg(15.85,y,.15,1);}
+  for(let x=0;x<7;x++)if(x!==3)seg(x,4.85,1,.15);
+  for(let x=9;x<16;x++)if(x!==12)seg(x,4.85,1,.15);
+  // desks with monitors
+  for(const [id,[x,y]] of Object.entries(DESKS)){
+    const w=id==="mara"?2.4:2,dh=TW*.42,busy=state[id].think&&mot[id].path.length===0&&state[id].pos===AG[id].home;
+    add(x+w/2+y+.5,()=>{box(x,y,w,1,dh,C.desk);box(x+w/2-.45,y+.15,.9,.12,TW*.42,C.dark,dh);
+      const g=busy?(Math.floor(t/300)%2?"#d8f075":"#b6d65a"):"#3d6b8f";
+      poly([P(x+w/2-.38,y+.27,dh+3),P(x+w/2+.38,y+.27,dh+3),P(x+w/2+.38,y+.27,dh+TW*.38),P(x+w/2-.38,y+.27,dh+TW*.38)],g);
+      box(x+.2,y+.55,.5,.3,1.5,C.white,dh);});
+  }
+  // Mara's bookshelf and office plant
+  add(1.2,()=>{box(.1,.1,.5,2,TW*1.2,C.desk);for(let k=0;k<4;k++)box(.6,.2+k*.45,.02,.35,TW*.2,[["#d05a4a","#4f9bff","#d8f075","#b57bff"][k],"#333","#333"],TW*(.2+k%2*.5));});
+  // meeting table and chairs
+  const mc=[[11,1.5],[14,1.5],[10.8,3.4],[14.2,3.4],[12.5,4.1]];
+  mc.forEach(([x,y])=>add(x+y-.05,()=>box(x-.3,y-.3,.6,.6,TW*.28,C.chair)));
+  add(12.5+2.5+.2,()=>{box(12.3,2.3,.4,.4,TW*.4,C.dark);ell(12.5,2.5,1.75,TW*.4-2,"#7a4a2a");ell(12.5,2.5,1.75,TW*.4,"#b5794a");ell(12.2,2.3,.7,TW*.4,"#c48a5a");});
+  // kitchen
+  add(22+.5,()=>{box(19,.05,6,.9,TW*.55,C.white);box(19,.05,6,.9,2,["#8f949b","#8f949b","#8f949b"],TW*.55);
+    box(19.6,.2,.6,.5,TW*.45,C.dark,TW*.55+2);box(21.4,.25,.9,.5,TW*.12,["#9fb8cf","#7d97ae","#64798c"],TW*.55+2);
+    box(23.3,.2,.4,.4,TW*.3,C.red,TW*.55+2);box(23.9,.25,.35,.35,TW*.22,["#e9c04a","#c9a03a","#a8842e"],TW*.55+2);});
+  add(25.8+.6,()=>box(25.3,.1,1.2,1,TW*1.55,C.white));
+  add(18.5+4.7,()=>{box(18.2,4.4,.6,.6,TW*.8,C.white);box(18.3,4.5,.4,.4,TW*.45,["#7cc3ff","#58a2e0","#4387bf"],TW*.8);});
+  add(21.5+2.6,()=>{box(20.5,2.3,2,1,TW*.42,C.desk);});
+  // servers with blinking lights
+  for(const yy of [6.6,7.8])add(.6+yy+.5,()=>{box(.15,yy,.9,1.05,TW*1.7,C.dark);
+    for(let r=0;r<6;r++)for(let q=0;q<3;q++){const on=calm.matches?((r+q)%2):(Math.sin(t/180+r*3+q*7+yy*5)>.2);
+      const [px,py]=P(.3+q*.25,yy+1.05,TW*(.25+r*.22));cx.fillStyle=on?(q===1?"#ff6b5e":"#6dff8a"):"#14181f";cx.fillRect(px,py,U,U);}});
+  // ping-pong table
+  add(12.5+12.8,()=>{for(const [lx,ly] of [[11.2,12.2],[13.6,12.2],[11.2,13.2],[13.6,13.2]])box(lx,ly,.15,.15,TW*.38,C.dark);
+    box(11,12,3,1.6,2,C.green,TW*.38);poly([P(11,12,TW*.38+2),P(14,12,TW*.38+2),P(14,13.6,TW*.38+2),P(11,13.6,TW*.38+2)],"#2f9e6a");
+    poly([P(11.1,12.8,TW*.38+2),P(13.9,12.8,TW*.38+2),P(13.9,12.83,TW*.38+2),P(11.1,12.83,TW*.38+2)],"#e9f2ea");
+    box(12.47,12,.06,1.6,TW*.16,C.white,TW*.38+2);});
+  // lounge: sofa facing the room, coffee table
+  add(19+12.2,()=>{box(17.6,11.75,3,.35,TW*.62,C.teal);box(17.6,12.1,3,.7,TW*.3,C.teal);box(17.6,11.75,.3,1.05,TW*.48,C.teal);box(20.3,11.75,.3,1.05,TW*.48,C.teal);});
+  add(19+13.3,()=>box(18.4,13.05,1.4,.55,TW*.25,C.desk));
+  // game corner: arcade cabinets on the left wall
+  const glow=(k,c1,c2)=>calm.matches?c1:(Math.floor(t/(260+k*70))%2?c1:c2);
+  const faceX=(x,y1,y2,z1,z2,f)=>poly([P(x,y1,z1),P(x,y2,z1),P(x,y2,z2),P(x,y1,z2)],f);
+  [[9.3,"#ff4fd8","#7a2cff"],[10.4,"#29e0ff","#1f6bff"],[11.5,"#ffd23f","#ff7a1a"]].forEach(([y,a,b],k)=>add(.45+y+.45,()=>{
+    const ch=TW*1.22;box(.08,y,.8,.9,ch,["#2b2140","#1e1730","#3a2c58"]);
+    faceX(.88,y+.12,y+.78,ch*.86,ch*.97,a);
+    faceX(.88,y+.15,y+.75,ch*.48,ch*.8,"#0b0d14");
+    const g=glow(k,a,b);faceX(.88,y+.2,y+.7,ch*.52,ch*.76,g);
+    if(!calm.matches){const f=Math.floor(t/120+k*5)%6;faceX(.88,y+.25+f*.06,y+.31+f*.06,ch*.58,ch*.64,"#ffffff");}
+    box(.88,y+.12,.28,.66,3,["#463a63","#2b2140","#3a2c58"],ch*.42);
+    const [jx,jy]=P(1.0,y+.35,ch*.42+3);cx.fillStyle="#ff4f4f";cx.fillRect(jx-U,jy-2*U,2*U,2*U);
+    const [bx2,by2]=P(1.0,y+.55,ch*.42+3);cx.fillStyle=a;cx.fillRect(bx2-U,by2-U,2*U,U);}));
+  // PS5 lounge: TV on a stand, the console beside it, sofa facing the screen
+  add(22.45+6.75,()=>{box(22.1,6.0,.6,1.5,TW*.3,C.dark);
+    box(22.4,6.05,.12,1.4,TW*.95,["#15171d","#101217","#1a1d24"],TW*.3);
+    faceX(22.52,6.11,7.39,TW*.36,TW*1.19,"#0b0d14");
+    const hue=calm.matches?210:(t/40)%360;faceX(22.52,6.15,7.35,TW*.4,TW*1.15,`hsl(${hue},70%,45%)`);
+    faceX(22.52,6.45,6.95,TW*.55,TW*.75,`hsl(${(hue+150)%360},80%,60%)`);
+    if(!calm.matches){const f=(t/300)%1;faceX(22.52,6.25+f*.9,6.37+f*.9,TW*.85,TW*.97,"#ffffff");}
+    box(22.15,7.1,.3,.32,TW*.5,["#f4f5f7","#dfe2e6","#c9cdd3"],TW*.3);
+    box(22.15,7.23,.3,.06,TW*.5,["#1b1d22","#1b1d22","#1b1d22"],TW*.3);});
+  add(24.95+6.75,()=>{box(24.4,5.95,.85,1.6,TW*.3,C.wine||["#6b2a3a","#561f2e","#451826"]);
+    box(25.15,5.95,.35,1.6,TW*.66,["#7a3346","#5e2636","#4c1e2c"]);
+    box(24.4,5.95,1.1,.25,TW*.48,["#7a3346","#5e2636","#4c1e2c"]);box(24.4,7.3,1.1,.25,TW*.48,["#7a3346","#5e2636","#4c1e2c"]);});
+  // plants
+  for(const [x,y] of [[.3,13.2],[26.2,13.2],[15.2,.25],[6.2,.25],[8.2,6.3],[17.3,6.3],[26.2,7.2]])
+    add(x+y+.5,()=>{box(x,y,.5,.5,TW*.32,C.pot);box(x+.05,y+.05,.4,.4,TW*.5,C.leaf,TW*.32);box(x+.15,y+.15,.2,.2,TW*.32,C.leaf,TW*.82);});
+  return L;
+}
+function drawAgent(i,t){
+  const m=mot[i],a=AG[i],[px,py]=P(m.x,m.y,0),u=U,moving=m.path.length>0;
+  const step=moving&&!calm.matches?(Math.floor(t/140)%2):0,sit=state[i].think&&!moving;
+  if(i===selected){cx.fillStyle="#d8f075";const r=P(m.x-.42,m.y,0),q=P(m.x,m.y-.42,0),s2=P(m.x+.42,m.y,0),w=P(m.x,m.y+.42,0);cx.beginPath();cx.moveTo(...r);cx.lineTo(...q);cx.lineTo(...s2);cx.lineTo(...w);cx.closePath();cx.lineWidth=u;cx.strokeStyle="#d8f075";cx.stroke();}
+  cx.fillStyle="rgba(0,0,0,.28)";cx.fillRect(px-4*u,py-u,8*u,2*u);
+  cx.fillStyle="#2a2e3a";cx.fillRect(px-3*u,py-5*u-(step?u:0),2*u,5*u);cx.fillRect(px+u,py-5*u-(step?0:u),2*u,5*u);
+  cx.fillStyle=a.color;cx.fillRect(px-4*u,py-12*u,8*u,7*u);
+  cx.fillStyle="rgba(0,0,0,.22)";cx.fillRect(px+2*u,py-12*u,2*u,7*u);
+  cx.fillStyle="#f0c49a";cx.fillRect(px-5*u,py-11*u+(sit?-2*u:0)+(step?u:0),u,4*u);cx.fillRect(px+4*u,py-11*u+(sit?-2*u:0)+(step?0:u),u,4*u);
+  cx.fillRect(px-3*u,py-17*u,6*u,5*u);
+  cx.fillStyle=a.hair;cx.fillRect(px-3*u,py-18*u,6*u,2*u);cx.fillRect(px-3*u,py-17*u,u,2*u);
+  cx.fillStyle="#1b1b22";cx.fillRect(px-u,py-15*u,u,u);cx.fillRect(px+u,py-15*u,u,u);
+  if(state[i].think&&!calm.matches){cx.fillStyle="#d8f075";for(let k=0;k<3;k++)if(Math.floor(t/250)%4>k)cx.fillRect(px-3*u+k*3*u,py-21*u,2*u,2*u);}
+}
+function paint(t){
+  const W=cv.width,H=cv.height;cx.clearRect(0,0,W,H);
+  const sh=TH*1.2;
+  box(-.3,-.3,GX+.65,GY+.65,sh,["#6b3a22","#5a2e19","#4a2514"],-sh);
+  for(let x=0;x<GX;x++)for(let y=0;y<GY;y++){
+    let f;
+    if(inMara(x,y)||inMeet(x,y))f=C.room[(x+y)%2];
+    else if(inKit(x,y))f=C.kit[(x+y)%2];
+    else f=C.wood[(x*2+y*5+(x>>2))%3];
+    poly([P(x,y),P(x+1,y),P(x+1,y+1),P(x,y+1)],f);
+    if(!inMara(x,y)&&!inMeet(x,y)&&!inKit(x,y)){const a=P(x,y+.5),b=P(x+1,y+.5);cx.fillStyle=C.plank;cx.fillRect(Math.min(a[0],b[0]),Math.min(a[1],b[1]),1,1);}
+  }
+  poly([P(17,11.5),P(21.2,11.5),P(21.2,13.9),P(17,13.9)],"#8e3f3a");poly([P(17.3,11.7),P(20.9,11.7),P(20.9,13.7),P(17.3,13.7)],"#a9524a");
+  const WH=TW*1.35;
+  box(-.3,-.3,GX+.3,.3,WH,C.brick);box(-.3,0,.3,GY,WH,C.brick);
+  wallY(0,GX,0,TW*.12,"#4a2514");wallX(0,GY,0,TW*.12,"#4a2514");
+  for(const x of [19,22,24.5])wallY(x,x+1.6,TW*.55,TW*1.15,"#7fb6d8");
+  wallY(10.2,14.8,TW*.5,TW*1.15,"#eef0f2");wallY(10.4,12.2,TW*.85,TW*.9,"#4f9bff");wallY(12.6,14.2,TW*.7,TW*.75,"#ff6b5e");
+  wallY(2,4,TW*.6,TW*1.1,"#d8f075");wallY(2.2,3.8,TW*.68,TW*1.02,"#2c3a1f");
+  wallX(3,4.5,TW*.55,TW*1.15,"#7fb6d8");wallX(9.2,12.5,TW*1.24,TW*1.3,calm.matches?"#ff4fd8":`hsl(${(t/20)%360},90%,62%)`);
+  const items=furniture(t);
+  IDS.forEach(i=>items.push([mot[i].x+mot[i].y,()=>drawAgent(i,t)]));
+  items.sort((a,b)=>a[0]-b[0]).forEach(([,f])=>f());
+  box(0,GY,GX+.35,.3,TH*1.5,C.brick);box(GX,-.3,.35,GY+.3,TH*1.5,C.brick);
+}
+function place(){
+  IDS.forEach(i=>{const m=mot[i],[px,py]=P(m.x,m.y,0);$("g-"+i).style.transform=`translate(${px*S}px,${(py-19*U)*S}px) translate(-50%,-100%)`;});
+}
+function resize(){
+  const w=$("vp").clientWidth;S=w>=1000?2:1;const iw=Math.floor(w/S);
+  const top=Math.ceil((document.querySelector(".hud.top").offsetHeight+6)/S),bot=Math.ceil((document.querySelector(".hud.bot").offsetHeight+10)/S);
+  const maxH=Math.max(260,Math.min(820,innerHeight*.8))/S-top-bot;
+  TW=Math.max(8,2*Math.floor(Math.min(iw*.96/(GX+GY),maxH/12.6/2)));TH=TW/2;U=Math.max(1,Math.round(TW/13));
+  const WH=TW*1.35,ih=Math.ceil((GX+GY)*TH/2+WH+TH*2+top+bot);
+  cv.width=iw;cv.height=ih;cv.style.width=iw*S+"px";cv.style.height=ih*S+"px";
+  ox=Math.round(iw/2-(GX-GY)*TW/4);oy=Math.round(top+WH);cx.imageSmoothingEnabled=false;
+}
+new ResizeObserver(resize).observe($("vp"));resize();
+const roomDoor=(x,y)=>y<5?(x<7?3.5:(x>=9&&x<16?12.5:null)):null;
+function route(i,to){
+  const m=mot[i],a=roomDoor(m.x,m.y),b=roomDoor(to[0],to[1]),pts=[];
+  if(a!==null&&a!==b)pts.push([a,4.3],[a,5.8]);
+  if(b!==null&&b!==a)pts.push([b,5.8],[b,4.3]);
+  pts.push([to[0],to[1]]);m.path=pts;m.target=to;
+}
+function arrive(i){return new Promise((res,rej)=>{if(!mot[i].path.length)return res();mot[i].done.push(res);ctrl?.signal.addEventListener("abort",()=>rej({code:"aborted"}),{once:true});});}
+let lastT=performance.now();
+function frame(t){
+  const dt=Math.min(.05,(t-lastT)/1000);lastT=t;
+  IDS.forEach(i=>{const m=mot[i];if(!m.path.length)return;const [tx,ty]=m.path[0],dx=tx-m.x,dy=ty-m.y,dd=Math.hypot(dx,dy),sp=4.2*dt;
+    if(calm.matches||dd<=sp){m.x=tx;m.y=ty;m.path.shift();if(!m.path.length)m.done.splice(0).forEach(f=>f());}else{m.x+=dx/dd*sp;m.y+=dy/dd*sp;}});
+  paint(t);place();requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+cv.addEventListener("click",e=>{
+  const r=cv.getBoundingClientRect(),mx=(e.clientX-r.left)/S,my=(e.clientY-r.top)/S;let best=null,bd=1e9;
+  IDS.forEach(i=>{const [px,py]=P(mot[i].x,mot[i].y,0),d=Math.hypot(mx-px,my-(py-9*U));if(d<bd){bd=d;best=i;}});
+  if(best&&bd<14*U)select(best);
+});
+
+function render(i){
+  const s=state[i];
+  if(s.pos!==mot[i].target)route(i,s.pos);
+  const b=$("b-"+i);b.textContent=s.bubble||"";b.classList.toggle("show",!!s.bubble);
+  $("s-"+i).textContent=s.status;
+}
+function set(i,patch){Object.assign(state[i],patch);render(i);if(i===selected)renderPanel();}
+IDS.forEach(render);
+
+function select(i){
+  selected=i;
+  IDS.forEach(k=>{$("n-"+k).classList.toggle("sel",k===i);$("w-"+k).classList.toggle("sel",k===i);});
+  renderPanel(true);
+}
+function renderPanel(full){
+  const a=AG[selected],s=state[selected];
+  if(!full&&$("pStatus")){$("pStatus").textContent=s.status;return;}
+  $("panel").innerHTML=`<h2>${a.name}, ${a.role.toLowerCase()}</h2>
+   <p class="hint">Now: <span id="pStatus"></span></p>
+   <label for="brief">How ${a.name} works</label>
+   <textarea id="brief" rows="4"></textarea>
+   <form id="dm" style="margin-top:12px"><label for="dmIn">Message ${a.name} directly</label>
+   <div class="row"><input id="dmIn" placeholder="Ask ${a.name} something" autocomplete="off" style="flex:1 1 220px"><button type="submit" id="dmGo">Send</button></div></form>`;
+  $("pStatus").textContent=s.status;
+  $("brief").value=a.brief;
+  $("brief").oninput=e=>{a.brief=e.target.value;};
+  $("dm").onsubmit=e=>{e.preventDefault();const q=$("dmIn").value.trim();if(q){$("dmIn").value="";directMessage(selected,q);}};
+}
+select("mara");
+
+/* feed */
+function post(who,text,note){
+  $("empty")?.remove();
+  const m=document.createElement("div");m.className="msg"+(who==="you"?" you":"");
+  const a=AG[who]||{name:"You",role:"",color:""};
+  m.innerHTML=`<span class="av" style="background:${a.color}">${a.name[0]}</span><div><div class="meta"><b></b><span></span></div><div class="txt"></div></div>`;
+  m.querySelector("b").textContent=a.name;m.querySelector(".meta span").textContent=note||a.role;
+  m.querySelector(".txt").textContent=text;
+  $("feed").appendChild(m);$("feed").scrollTop=$("feed").scrollHeight;
+  const f=t=>{m.querySelector(".txt").textContent=t;$("feed").scrollTop=$("feed").scrollHeight;};
+  f.el=m;return f;
+}
+const wait=ms=>new Promise((r,j)=>{const t=setTimeout(r,ms);ctrl?.signal.addEventListener("abort",()=>{clearTimeout(t);j({code:"aborted"});},{once:true});});
+const walk=async(i,pos,status,bubble)=>{state[i].walking=true;set(i,{pos,status,bubble,away:false});try{await arrive(i);}finally{state[i].walking=false;}};
+
+/* idle roaming: agents with nothing to do wander the office like little bots */
+let held=false;
+const SPOTS=[[[21,1.5],"Getting coffee"],[[18.5,5.5],"Refilling water"],[[24,1.5],"Raiding the snacks"],[[1.2,12.6],"Watering the plant"],[[26,12.55],"Watering the plant"],[[12.5,11.4],"Playing ping-pong"],[[21.6,12.7],"Taking a break"],[[1.9,7.6],"Checking the servers"],[[1.65,9.75],"Playing arcade"],[[1.65,10.85],"Playing arcade"],[[1.65,11.95],"Playing arcade"],[[24.15,6.4],"Playing PS5"],[[24.15,7.1],"Playing PS5"],[[1.65,10.85],"Playing arcade"],[[24.15,12.7],"Playing PS5"],[[21.5,3.6],"Making tea"],[[12.5,4.3],"Tidying the meeting room"]];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function roam(i){
+  const s=state[i];
+  if(!calm.matches&&!held&&!s.think&&!s.walking&&!s.dm&&!mot[i].path.length){
+    if(s.away&&Math.random()<.55){set(i,{pos:AG[i].home,status:"At desk",bubble:"",away:false});}
+    else{
+      const r=Math.random(),others=IDS.filter(k=>k!==i&&state[k].pos===AG[k].home&&!state[k].think);
+      let pos,t;
+      if(r<.3&&others.length){const k=pick(others);pos=[AG[k].home[0]+(Math.random()<.5?-1.1:1.1),AG[k].home[1]+.6];t="Chatting with "+AG[k].name;}
+      else if(r<.8){const free=SPOTS.filter(([p])=>!IDS.some(k=>k!==i&&Math.hypot(state[k].pos[0]-p[0],state[k].pos[1]-p[1])<.55));[pos,t]=pick(free.length?free:SPOTS);if(!/^Playing (arcade|PS5)/.test(t))pos=[pos[0]+Math.random()*.4-.2,pos[1]+Math.random()*.4-.2];}
+      else{pos=[2+Math.random()*23,Math.random()<.5?6.2+Math.random()*1.6:11.9+Math.random()*1.5];t=pick(["Taking a lap","Stretching legs","Humming a tune","Looking for a pen"]);}
+      set(i,{pos,status:t,bubble:t,away:true});
+      setTimeout(()=>{if(state[i].away&&state[i].bubble===t)set(i,{bubble:""});},4200);
+    }
+  }
+  setTimeout(()=>roam(i),4000+Math.random()*5000);
+}
+IDS.forEach((i,k)=>setTimeout(()=>roam(i),1500+k*900));
+
+/* one agent turn: streams into the channel */
+async function turn(i,instruction,note,bubble){
+  if(state[i].pos!==AG[i].home&&!held)await walk(i,AG[i].home,"Heading to desk","On it");
+  set(i,{think:true,status:bubble,bubble});
+  const update=post(i,"Thinking…",note);
+  let text="";
+  try{
+    if(sample){
+      const prompt=`${AG[i].brief}\nYour five-person team runs the back office of ${shop()}, a tailoring shop: Mara (lead), Theo (research), Juno (writing), Ivo (review), Pia (images). Don't invent prices, dates, addresses or phone numbers; leave a clear blank like [opening date] for the owner to fill in.
+House style for anything customer-facing:
+${guide()}
+Write as yourself in a team chat: no greeting, no sign-off, plain text, no markdown headings.\n\n${instruction}`;
+      const r=await sample(prompt,{signal:ctrl.signal,cache:false,onText:({text:t})=>{text=t;update(t);}});
+      text=r.text;
+    }else{
+      text=DEMO[note]||"Done.";
+      for(let k=0;k<=text.length;k+=14){update(text.slice(0,k));await wait(30);}
+    }
+    update(text);
+  }finally{set(i,{think:false,bubble:""});}
+  return text;
+}
+
+async function directMessage(i,q){
+  if(ctrl){status("The team is mid-task. Message them when it's done.");return;}
+  ctrl=new AbortController();
+  post("you",q,"To "+AG[i].name);
+  try{await turn(i,`The client messages you directly: """${q}"""\nReply helpfully in under 120 words.`,"Reply","Replying");}
+  catch(e){status(e?.code==="aborted"?"Stopped":"No reply: "+(e?.message||"error"));}
+  finally{ctrl=null;}
+}
+
+$("taskForm").onsubmit=e=>{e.preventDefault();if(!ctrl)makePost($("task").value.trim(),$("size").value);};
+$("stop").onclick=()=>ctrl?.abort();
+
+/* ---------- Pia's image studio ---------- */
+let downloads=null,canSee=false,piaBusy=false,outArtData=null,curPost=null;
+const gallery=[],photos=[];let cur=null;
+const FMT={square:[1080,1080],portrait:[1080,1350],story:[1080,1920]};
+const errText=e=>e?.code==="rate_limited"?"Claude is busy right now. Try again in a minute.":e?.code==="not_granted"?"Claude access wasn't allowed, so Pia can't work. Reload the page to allow it.":(e?.code==="aborted"||e?.name==="AbortError")?"Stopped.":(e?.message||"Something went wrong")+". Try again.";
+const pause=ms=>new Promise(r=>setTimeout(r,ms));
+function engage(on,label){
+  if(on){piaBusy=true;set("pia",{dm:true,pos:AG.pia.home,away:false,think:true,status:label,bubble:label});}
+  else{piaBusy=false;set("pia",{dm:false,think:false,bubble:"",status:"At desk"});}
+}
+async function save(blob,name,noteEl){
+  if(!blob){noteEl.textContent="That image couldn't be turned into a file. Right-click or long-press it to save it instead.";return;}
+  if(!downloads){noteEl.textContent="Downloads aren't available here. Right-click or long-press the image to save it.";return;}
+  try{await downloads.save({filename:name,data:blob});noteEl.textContent="Saved "+name;}
+  catch(e){noteEl.textContent="Download didn't finish: "+(e?.message||"it was cancelled")+".";}
+}
+const fileName=(t,ext)=>(String(t).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"post")+"."+ext;
+const copyText=async(text,btn,label)=>{try{await navigator.clipboard.writeText(text);btn.textContent="Copied";}catch{btn.textContent="Select the text to copy";}setTimeout(()=>btn.textContent=label,2000);};
+
+/* house style: what every agent knows about the posts this shop needs */
+const DEFAULT_GUIDE=`Instagram house style (from the example posts the owner shared; reference account: instagram.com/alexrosetailoring)
+
+Format: portrait 4:5 posts (1080 x 1350), one post a day.
+Look: photo-led and premium. Real garments, cloth, tailors at work, fittings and models in suits outdoors (old streets, stone walls, rivers). Warm, moody light.
+Type: tall, condensed serif headlines that fill the frame, with one or two words in gold italic. Small spaced capitals for labels. A flowing script word for heritage posts.
+Colours: deep slate teal, bottle green, burgundy, antique gold, cream and black.
+Logo: our name in white, top left, with the year we were founded under it.
+Voice: confident, warm and British. Headlines of 2 to 8 words, often a question or a promise. No emojis in the image.
+Our weekly mix, one of each:
+1. Education: a guide or question (lapels: notch, peak or shawl; what is a monogram; can you dry clean a suit; three signs your jacket truly fits).
+2. Craft and behind the scenes: "a jacket made properly cannot be rushed"; cloth, cutting, the rail of finished jackets.
+3. Service or offer: 7 day express made-to-measure; "still time for Christmas"; gift vouchers and partners.
+4. Social proof: a real customer review on a card with five gold stars.
+5. Heritage: our story and years of trust, old photos and documents, "stitching trust for 80 years".
+6. Lifestyle look: a model in one of our suits or coats outdoors, with a short bold line like "No time limit. Ever."
+7. Event or invitation: e.g. "Coffee talk with our master tailor", limited places, reserve your spot.
+Captions: 2 to 4 sentences, then a call to book a fitting or "link in bio", then 5 to 8 hashtags.
+Rules: use only our own shop name and logo, never another brand's. Don't invent prices, dates or reviews.`;
+const LAYOUTS={headline:"Bold headline",panel:"Side panel",badge:"Framed badge",heritage:"Heritage",review:"Customer review",guide:"Guide or question",offer:"Offer or voucher"};
+const store={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
+const guide=()=>$("guide").value.trim()||DEFAULT_GUIDE;
+const reviews=()=>$("reviews").value.split("\n").map(l=>l.trim()).filter(Boolean);
+$("guide").value=store.get("guide")||DEFAULT_GUIDE;
+$("since").value=store.get("since")||"";
+$("reviews").value=store.get("reviews")||"";
+["guide","since","reviews"].forEach(k=>$(k).addEventListener("input",e=>store.set(k,e.target.value)));
+$("guideReset").onclick=()=>{$("guide").value=DEFAULT_GUIDE;store.set("guide",DEFAULT_GUIDE);};
+const COL={cSlate:"slate",cGold:"gold",cCream:"cream",cWine:"wine"};
+for(const id in COL){const v=store.get(id);if(v)$(id).value=v;$(id).addEventListener("input",e=>store.set(id,e.target.value));}
+const col=k=>$(Object.keys(COL).find(id=>COL[id]===k)).value;
+let logo=null;
+function setLogo(url){
+  if(!url){logo=null;$("logoRow").hidden=true;$("logoPrev").innerHTML="";return;}
+  const im=new Image();im.onload=()=>{logo=im;$("logoPrev").innerHTML="";const t=new Image();t.alt="Your logo";t.src=url;$("logoPrev").appendChild(t);$("logoRow").hidden=false;};im.src=url;
+}
+setLogo(store.get("logo"));
+$("logoIn").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const u=String(r.result);if(u.length<600000)store.set("logo",u);setLogo(u);};r.readAsDataURL(f);e.target.value="";};
+$("logoClear").onclick=()=>{store.set("logo","");setLogo(null);};
+
+/* the post renderer: seven layouts drawn from the example feed */
+let PW=1080,PH=1350,SAFE=0;let fontsReady=null;
+const SIZES={portrait:[1080,1350,"Portrait 4:5"],square:[1080,1080,"Square 1:1"],story:[1080,1920,"Story 9:16"]};
+const loadFonts=()=>fontsReady||(fontsReady=Promise.all(['700 80px "Playfair Display"','italic 700 80px "Playfair Display"','italic 400 40px "Playfair Display"','500 40px "Cinzel"','400 80px "Pinyon Script"','600 30px "Montserrat"','400 30px "Montserrat"'].map(f=>document.fonts.load(f).catch(()=>{}))));
+function rgba(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${n>>16},${n>>8&255},${n&255},${a})`;}
+function cover(x,img,filter,bx=0,by=0,bw=PW,bh=PH){
+  const r=bw/bh;let sw=img.naturalWidth,sh=img.naturalHeight;if(sw/sh>r)sw=sh*r;else sh=sw/r;
+  x.save();x.beginPath();x.rect(bx,by,bw,bh);x.clip();x.filter=filter||"none";
+  x.drawImage(img,(img.naturalWidth-sw)/2,(img.naturalHeight-sh)/2,sw,sh,bx,by,bw,bh);x.restore();
+}
+function cloth(x,base){
+  x.fillStyle=base;x.fillRect(0,0,PW,PH);x.lineWidth=3;
+  for(let b=0;b<PW/36+1;b++)for(let y=-40;y<PH+40;y+=11){x.strokeStyle=(y/11+b)%2?"rgba(255,255,255,.05)":"rgba(0,0,0,.09)";x.beginPath();x.moveTo(b*36,y);x.lineTo(b*36+36,y+(b%2?22:-22));x.stroke();}
+  const g=x.createRadialGradient(PW/2,PH/2,200,PW/2,PH/2,900);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.5)");x.fillStyle=g;x.fillRect(0,0,PW,PH);
+}
+function vgrad(x,y1,y2,c1,c2){const g=x.createLinearGradient(0,y1,0,y2);g.addColorStop(0,c1);g.addColorStop(1,c2);x.fillStyle=g;x.fillRect(0,Math.min(y1,y2),PW,Math.abs(y2-y1));}
+function wrap(x,text,maxW){const out=[];let l="";for(const w of String(text).split(/\s+/).filter(Boolean)){const t=l?l+" "+w:w;if(x.measureText(t).width>maxW&&l){out.push(l);l=w;}else l=t;}if(l)out.push(l);return out;}
+function fitWrap(x,text,font,maxW,maxLines,max,min){let s=max,lines;for(;s>=min;s-=2){x.font=font(s);lines=wrap(x,text,maxW);if(lines.length<=maxLines)break;}return {s:Math.max(s,min),lines:lines.slice(0,maxLines)};}
+/* rich headline: accent words in gold italic, horizontally condensed */
+function rich(x,text,accent,maxW,maxLines,max,min,sx,weight=700,maxH=1e9){
+  const acc=new Set(String(accent||"").toLowerCase().split(/\s+/).map(w=>w.replace(/[^\p{L}\p{N}']/gu,"")).filter(Boolean));
+  const toks=String(text).split(/\s+/).filter(Boolean).map(w=>({w,a:acc.has(w.toLowerCase().replace(/[^\p{L}\p{N}']/gu,""))}));
+  for(let s=max;s>=min;s-=4){
+    const lines=[];let line=[],lw=0;
+    for(const t of toks){x.font=`${t.a?"italic ":""}${weight} ${s}px "Playfair Display"`;t.wd=x.measureText(t.w).width*sx;const sp=s*.26*sx;
+      if(line.length&&lw+sp+t.wd>maxW){lines.push({t:line,w:lw});line=[];lw=0;}lw+=(line.length?sp:0)+t.wd;line.push({...t});}
+    if(line.length)lines.push({t:line,w:lw});
+    if((lines.length<=maxLines&&lines.every(l=>l.w<=maxW)&&lines.length*s<=maxH)||s-4<min)return {s,lines:lines.slice(0,maxLines),sx,weight};
+  }
+}
+function drawRich(x,R,px,ytop,align,main,acc,lh=.98){
+  R.lines.forEach((l,k)=>{let cx0=align==="center"?px-l.w/2:px;const y=ytop+R.s*.8+k*R.s*lh;
+    l.t.forEach(t=>{x.save();x.translate(cx0,y);x.scale(R.sx,1);x.font=`${t.a?"italic ":""}${R.weight} ${R.s}px "Playfair Display"`;x.fillStyle=t.a?acc:main;x.fillText(t.w,0,0);x.restore();cx0+=t.wd+R.s*.26*R.sx;});});
+  return R.lines.length*R.s*lh;
+}
+function mark(x,px,py,color,align="left"){
+  if(logo){const h=120,w=Math.min(420,logo.naturalWidth*h/logo.naturalHeight);x.drawImage(logo,align==="center"?px-w/2:px,py-60,w,w*logo.naturalHeight/logo.naturalWidth);return;}
+  return;
+  x.fillStyle=color;x.textAlign=align;const name=shop().toUpperCase();
+  let s=36;do{x.font=`500 ${s}px "Cinzel"`;s-=2;}while(x.measureText(name).width>520&&s>18);
+  x.fillText(name,px,py);
+  const y=$("since").value.trim();if(y){x.font='500 17px "Cinzel"';x.fillText("SINCE "+y,px,py+30);}
+  x.textAlign="left";
+}
+function stars(x,cx0,cy,r,n,color){x.fillStyle=color;for(let k=0;k<n;k++){const ox2=cx0+(k-(n-1)/2)*r*2.5;x.beginPath();for(let p=0;p<10;p++){const a=-Math.PI/2+p*Math.PI/5,rr=p%2?r*.45:r;x.lineTo(ox2+Math.cos(a)*rr,cy+Math.sin(a)*rr);}x.closePath();x.fill();}}
+function rrect(x,a,b,w,h,r){x.beginPath();x.roundRect?x.roundRect(a,b,w,h,r):x.rect(a,b,w,h);}
+const T={
+  headline(x,d,img){
+    img?cover(x,img,"brightness(.92)"):cloth(x,col("slate"));
+    vgrad(x,PH*.32,PH,"rgba(0,0,0,0)","rgba(0,0,0,.78)");vgrad(x,0,220,"rgba(0,0,0,.45)","rgba(0,0,0,0)");
+    mark(x,64,96+SAFE,"#fff");
+    const R=rich(x,d.headline,d.accent,PW-130,4,190,80,.74,700,PH*.5),h=R.lines.length*R.s*.98;let y=PH-90-SAFE-h;
+    drawRich(x,R,64,y,"left","#fff",col("gold"));
+    if(d.kicker){x.font='600 30px "Montserrat"';const k=d.kicker.toUpperCase(),w=x.measureText(k).width;rrect(x,64,y-66,w+36,50,25);x.fillStyle=col("cream");x.fill();x.fillStyle=col("slate");x.fillText(k,82,y-31);}
+  },
+  panel(x,d,img){
+    img?cover(x,img):cloth(x,col("wine"));
+    x.fillStyle="rgba(150,160,162,.9)";x.beginPath();x.moveTo(640,0);x.lineTo(690,0);x.lineTo(500,PH);x.lineTo(450,PH);x.fill();
+    x.fillStyle=col("slate");x.beginPath();x.moveTo(0,0);x.lineTo(640,0);x.lineTo(450,PH);x.lineTo(0,PH);x.fill();
+    mark(x,64,96+SAFE,"#fff");
+    const R=rich(x,d.headline,d.accent,410,6,104,52,1,400);let body=null;
+    if(d.body){body=fitWrap(x,d.body,s=>`400 ${s}px "Montserrat"`,390,5,30,22);}
+    const hh=R.lines.length*R.s*1.05+(body?40+body.lines.length*body.s*1.4:0);let y=PH/2-hh/2;
+    y+=drawRich(x,R,64,y,"left","#fff",col("gold"),1.05);
+    if(body){x.font=`400 ${body.s}px "Montserrat"`;x.fillStyle="rgba(255,255,255,.85)";body.lines.forEach((l,k)=>x.fillText(l,64,y+40+body.s+k*body.s*1.4));}
+  },
+  badge(x,d,img){
+    img?cover(x,img,"brightness(.5)"):cloth(x,"#1c1c1c");
+    const s=620,bx=(PW-s)/2,by=(PH-s)/2-20;x.fillStyle="#0b0b0b";x.fillRect(bx,by,s,s);
+    x.strokeStyle=col("gold");x.lineWidth=5;x.strokeRect(bx+26,by+26,s-52,s-52);x.lineWidth=1.5;x.strokeRect(bx+40,by+40,s-80,s-80);
+    const num=String(d.number||"").trim()||(String(d.headline).match(/^\d+/)||[""])[0];
+    const title=String(d.headline).replace(/^\d+\s*/,"").toUpperCase();
+    x.fillStyle="#f4efe6";
+    if(num){x.font='700 300px "Playfair Display"';const nw=x.measureText(num).width;const tf=fitWrap(x,title,v=>`500 ${v}px "Cinzel"`,s-160-nw,3,64,30);
+      const tx=bx+(s-(nw+30+Math.max(0,...tf.lines.map(l=>(x.font=`500 ${tf.s}px "Cinzel"`,x.measureText(l).width)))))/2;
+      x.font='700 300px "Playfair Display"';x.fillText(num,tx,by+s/2+80);
+      x.font=`500 ${tf.s}px "Cinzel"`;const th=tf.lines.length*tf.s*1.15;tf.lines.forEach((l,k)=>x.fillText(l,tx+nw+30,by+s/2-th/2+tf.s*.9+k*tf.s*1.15-10));}
+    else{const tf=fitWrap(x,title,v=>`500 ${v}px "Cinzel"`,s-140,3,70,34);x.textAlign="center";tf.lines.forEach((l,k)=>x.fillText(l,PW/2,by+s/2-(tf.lines.length*tf.s*1.15)/2+tf.s*.9+k*tf.s*1.15-20));x.textAlign="left";}
+    if(d.body){x.textAlign="center";const b=fitWrap(x,String(d.body).toUpperCase(),v=>`italic 400 ${v}px "Playfair Display"`,s-150,2,28,18);b.lines.forEach((l,k)=>x.fillText(l,PW/2,by+s-140+k*b.s*1.3));x.textAlign="left";}
+    
+    if(d.cta){x.font='600 30px "Montserrat"';x.fillStyle="#fff";x.textAlign="center";x.fillText(d.cta,PW/2,by+s+90);x.textAlign="left";}
+  },
+  heritage(x,d,img){
+    img?cover(x,img,"grayscale(1) contrast(1.1) brightness(.92)"):cloth(x,"#2b2b2b");
+    vgrad(x,PH*.42,PH,rgba(col("slate"),0),rgba(col("slate"),1));
+    mark(x,64,96+SAFE,"#fff");
+    const words=String(d.headline).split(/\s+/).filter(Boolean);const script=(d.accent&&String(d.accent).split(/\s+/)[0])||words[0]||"";
+    const rest=words.filter(w=>w!==script).join(" ").toUpperCase();
+    const R=rich(x,rest,"",PW-140,2,150,70,.72,400),rh=R.lines.length*R.s*.98;
+    drawRich(x,R,PW/2,PH-80-SAFE-rh,"center","#fff",col("gold"));
+    x.fillStyle="#fff";x.textAlign="center";let ss=200;do{x.font=`400 ${ss}px "Pinyon Script"`;ss-=6;}while(x.measureText(script).width>PW-120);x.fillText(script,PW/2,PH-100-SAFE-rh);x.textAlign="left";
+  },
+  review(x,d,img){
+    img?cover(x,img,"blur(16px) brightness(.7)"):cloth(x,col("slate"));
+    mark(x,64,96+SAFE,"#fff");
+    const cx0=100,cw=PW-200,ch=img?PH-300-2*SAFE:760,cy0=img?210+SAFE:(PH-ch)/2+40;x.fillStyle="rgba(0,0,0,.35)";x.fillRect(cx0+14,cy0+14,cw,ch);x.fillStyle=col("cream");x.fillRect(cx0,cy0,cw,ch);
+    let y=cy0+60;const ih=Math.round(PH*.3);if(img){cover(x,img,"none",cx0+50,y,cw-100,ih);y+=ih+60;}else y+=60;
+    stars(x,PW/2,y,30,5,"#e2b13c");y+=70;
+    const q=fitWrap(x,"“"+String(d.quote||"Paste a real customer review here")+"”",v=>`italic 400 ${v}px "Playfair Display"`,cw-140,img?(PH<1200?4:6):10,44,24);
+    x.fillStyle="#3a3a3a";x.textAlign="center";x.font=`italic 400 ${q.s}px "Playfair Display"`;q.lines.forEach((l,k)=>x.fillText(l,PW/2,y+q.s+k*q.s*1.3));
+    x.font='400 64px "Pinyon Script"';x.fillStyle="#222";x.fillText(String(d.name||"Customer name"),PW/2,Math.min(cy0+ch-50,y+q.s+q.lines.length*q.s*1.3+80));x.textAlign="left";
+  },
+  guide(x,d,img){
+    img?cover(x,img):cloth(x,col("cream"));
+    const g=x.createLinearGradient(0,0,0,PH*.62);g.addColorStop(0,rgba(col("cream"),.97));g.addColorStop(.7,rgba(col("cream"),.75));g.addColorStop(1,rgba(col("cream"),0));x.fillStyle=g;x.fillRect(0,0,PW,PH*.62);
+    x.fillStyle="#2a2a2a";x.textAlign="center";x.font='500 26px "Cinzel"';if(d.kicker)x.fillText(String(d.kicker).toUpperCase(),PW/2,78+SAFE);x.textAlign="left";
+    const R=rich(x,d.headline,d.accent,PW-140,3,200,80,.7,700,PH*.45);drawRich(x,R,PW/2,104+SAFE,"center",col("slate"),col("gold"),.92);
+    vgrad(x,PH-260,PH,"rgba(0,0,0,0)","rgba(0,0,0,.55)");mark(x,64,PH-110-SAFE,"#fff");
+  },
+  offer(x,d,img){
+    cloth(x,"#1d2a2b");
+    mark(x,PW/2,86+SAFE,"#fff","center");
+    const R=rich(x,d.headline,d.accent,PW-140,3,104,56,1,400,PH*.25);let y=170+SAFE;y+=drawRich(x,R,PW/2,y,"center","#fff",col("gold"),1.05)+30;
+    if(img){const oh=Math.round(PH*.34);x.save();rrect(x,150,y,PW-300,oh,18);x.clip();cover(x,img,"none",150,y,PW-300,oh);x.restore();x.strokeStyle=col("gold");x.lineWidth=4;rrect(x,150,y,PW-300,oh,18);x.stroke();y+=oh+40;}
+    else{x.strokeStyle=col("gold");x.lineWidth=2;x.beginPath();x.moveTo(PW/2-120,y+20);x.lineTo(PW/2+120,y+20);x.stroke();y+=70;}
+    if(d.body){const b=fitWrap(x,d.body,v=>`400 ${v}px "Montserrat"`,PW-220,img?(PH<1200?2:4):8,34,22);x.fillStyle="rgba(255,255,255,.9)";x.textAlign="center";x.font=`400 ${b.s}px "Montserrat"`;b.lines.forEach((l,k)=>x.fillText(l,PW/2,y+b.s+k*b.s*1.45));x.textAlign="left";}
+    const cta=d.cta||"Link in our bio";x.font='600 36px "Montserrat"';const w=Math.min(PW-160,x.measureText(cta).width+120);
+    rrect(x,(PW-w)/2,PH-150-SAFE,w,92,46);x.fillStyle="#2f6f6a";x.fill();x.fillStyle="#fff";x.textAlign="center";x.fillText(cta,PW/2,PH-91-SAFE);x.textAlign="left";
+  }
+};
+function norm(d){
+  d=d&&typeof d==="object"?d:{};const o={};
+  for(const k of ["layout","kicker","headline","accent","number","body","quote","name","cta","caption","photo","day","pillar"])o[k]=d[k]==null?"":String(d[k]);
+  o.layout=LAYOUTS[o.layout]?o.layout:"headline";o.headline=o.headline||"Made for you";
+  o.hashtags=Array.isArray(d.hashtags)?d.hashtags.map(t=>"#"+String(t).replace(/^#/,"").replace(/\s+/g,"")).slice(0,10):[];
+  o.photoIndex=Number.isInteger(+d.photoIndex)?+d.photoIndex:-1;
+  if(o.layout==="review"){const rv=reviews();if(!rv.length){o.quote="Paste a real customer review here";o.name="Customer name";}}
+  return o;
+}
+const fullCaption=d=>(d.caption||"")+(d.hashtags.length?"\n\n"+d.hashtags.join(" "):"");
+async function renderPost(d,img,size="portrait"){
+  await loadFonts();const z=SIZES[size]||SIZES.portrait;PW=z[0];PH=z[1];SAFE=PH>1500?240:0;const c=document.createElement("canvas");c.width=PW;c.height=PH;const x=c.getContext("2d");
+  try{T[d.layout](x,d,img);}catch(e){console.error(e);x.fillStyle="#222";x.fillRect(0,0,PW,PH);}
+  let url;try{url=c.toDataURL("image/jpeg",.9);}catch{url="";}
+  return {canvas:c,url,copy:d,img};
+}
+function showPost(stage,res){stage.innerHTML="";const im=new Image();im.alt=res.copy.headline;im.src=res.url;stage.appendChild(im);}
+const dlPost=(res,note)=>res.canvas.toBlob(b=>save(b,fileName(res.copy.headline,"jpg"),note),"image/jpeg",.92);
+const SPEC=`Choose a "layout" from: ${Object.entries(LAYOUTS).map(([k,v])=>k+" ("+v+")").join(", ")}. Use badge for a numbered service, heritage for history, review only for a real review, guide for a question or how-to, offer for vouchers, deadlines and events, panel for an article-style tip, headline for craft and lifestyle.
+Fields: "layout"; "kicker" (0 to 5 words, a small label or ""); "headline" (2 to 8 words); "accent" (1 or 2 words copied exactly from the headline, set in gold italic; for heritage, the one word to write in script); "number" (only for a numbered service like 7, else ""); "body" (0 to 25 words, used by panel, badge and offer); "quote" and "name" (review only: copy a real review from the owner's list exactly, else ""); "cta" (short call to action or ""); "caption" (2 to 4 sentences); "hashtags" (5 to 8, without #); "photo" (one short line: the photo that would suit this post).`;
+const reviewNote=()=>reviews().length?`Real customer reviews you may quote exactly:\n${reviews().join("\n")}`:"There are no real reviews yet: for a review post leave quote and name empty.";
+
+/* one post from an idea */
+async function piaPost(idea,layout,photo,signal){
+  engage(true,"Designing a post");
+  const upd=post("pia","Designing a post…","Post");
+  try{
+    let d;
+    if(sample){
+      d=await sample.json(`${AG.pia.brief}\nYou make Instagram posts for ${shop()}, a tailoring shop.\nHouse style:\n${guide()}\n${reviewNote()}\nThe post: """${idea}"""\n${layout!=="auto"?`Use the "${layout}" layout.\n`:""}${photo?`It will be set on the owner's photo${photo.about?` of: ${photo.about}`:""}.\n`:"There's no photo; it will sit on a cloth background.\n"}${SPEC}\nReturn one JSON object only.`,{signal,cache:false});
+    }else{await pause(900);const head=String(idea).split(/[:,.;!?]/)[0].split(/\s+/).slice(0,8).join(" "),w=head.split(" ");d={layout:layout==="auto"?"headline":layout,kicker:"",headline:head,accent:[...w].sort((p,q)=>q.length-p.length)[0],body:idea,cta:"Book a fitting",caption:"Made in our workroom, fitted to you. "+idea+". Book a fitting through the link in our bio.",hashtags:["tailoring","madetomeasure","bespoke","menswear","suits"]};}
+    d=norm(d);if(layout!=="auto")d.layout=layout;
+    const res=await renderPost(d,photo?photo.img:null);
+    upd(`Here's the post: "${d.headline}". The caption is ready.`);
+    const im=new Image();im.alt="Post preview";im.src=res.url;upd.el.querySelector(".txt").after(im);
+    return res;
+  }catch(e){upd("I couldn't finish the post. "+errText(e));throw e;}
+  finally{engage(false);}
+}
+
+/* ---------- photo library: hand photos to Pia ---------- */
+const DB={db:null,
+  open(){return this.db||(this.db=new Promise((res,rej)=>{const r=indexedDB.open("agent-office",1);r.onupgradeneeded=()=>r.result.createObjectStore("photos",{keyPath:"id"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));},
+  async run(mode,fn){const db=await this.open();return new Promise((res,rej)=>{const t=db.transaction("photos",mode),q=fn(t.objectStore("photos"));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error);});},
+  all(){return this.run("readonly",s=>s.getAll()).catch(()=>[]);},
+  put(o){return this.run("readwrite",s=>s.put(o)).catch(()=>{});},
+  del(id){return this.run("readwrite",s=>s.delete(id)).catch(()=>{});}
+};
+const loadImg=blob=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=URL.createObjectURL(blob);});
+function shrink(img,max,q){return new Promise(res=>{const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);c.toBlob(b=>res(b),"image/jpeg",q);});}
+function renderLib(){
+  $("lib").innerHTML="";
+  photos.filter(p=>!p.used).forEach(p=>{const d=document.createElement("div");d.className="ph";d.title=p.about||"Pia is looking at this one";
+    const im=new Image();im.alt=p.about||p.name;im.src=p.img.src;
+    const b=document.createElement("button");b.type="button";b.textContent="×";b.setAttribute("aria-label","Remove "+(p.about||p.name));
+    b.onclick=async()=>{const i=photos.indexOf(p);if(i>=0)photos.splice(i,1);await DB.del(p.id);renderLib();};
+    d.append(im,b);$("lib").appendChild(d);});
+}
+async function loadLibrary(){
+  for(const r of await DB.all()){try{photos.push({id:r.id,name:r.name,about:r.about,used:!!r.used,blob:r.blob,img:await loadImg(r.blob)});}catch{}}
+  renderLib();
+}
+let describing=Promise.resolve();
+async function addFiles(list){
+  const added=[];$("libNote").textContent="";
+  for(const f of list){
+    if(!f.type.startsWith("image/"))continue;
+    try{const big=await loadImg(f),blob=await shrink(big,1600,.9),p={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),name:f.name,about:"",blob,img:await loadImg(blob)};
+      photos.push(p);added.push(p);await savePhoto(p);}
+    catch{$("libNote").textContent=f.name+" couldn't be opened. Try a JPEG or PNG.";}
+  }
+  renderLib();
+  if(added.length)describing=describing.then(()=>describeAll(added)).catch(()=>{});
+}
+async function describeAll(list){
+  engage(true,"Looking at your photos");
+  const upd=post("pia",`Looking at ${list.length} new photo${list.length>1?"s":""}…`,"Photos");
+  try{
+    for(const p of list){
+      if(sample&&canSee){try{const r=await sample.json(`You help a tailoring shop pick photos for Instagram posts. Describe this photo in under 15 words: the garment or subject, setting and mood. Return JSON only: {"about":"..."}`,{images:[await shrink(p.img,1024,.85)],cache:false});p.about=String(r?.about||"").slice(0,140);}catch(e){if(e?.code==="not_granted"||e?.code==="rate_limited")throw e;}}
+      if(!p.about)p.about=p.name.replace(/\.[^.]+$/,"").replace(/[-_]+/g," ");
+      await savePhoto(p);renderLib();
+    }
+    upd(`I've looked at ${list.length===1?"your new photo":"all "+list.length+" new photos"}: `+list.map(p=>p.about).join("; ")+".");
+  }catch(e){upd("I couldn't look at the photos. "+errText(e));}
+  finally{engage(false);}
+}
+$("files").onchange=e=>{addFiles([...e.target.files]);e.target.value="";};
+const drop=$("drop");
+drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over");});
+drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
+drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("over");addFiles([...e.dataTransfer.files]);});
+const photoList=(list=photos)=>list.length?list.map((p,k)=>`${k}: ${p.about||p.name}`).join("; "):"none yet";
+const savePhoto=p=>DB.put({id:p.id,name:p.name,about:p.about||"",used:!!p.used,blob:p.blob});
+const freshPhotos=()=>photos.filter(p=>!p.used);
+/* a photo leaves the tray once a post uses it, and comes back when no post uses it */
+function syncUsed(){photos.forEach(f=>{const u=posts.some(p=>p.photoId===f.id);if(f.used!==u){f.used=u;savePhoto(f);}});renderLib();}
+
+/* ---------- client taste: every piece of feedback is remembered ---------- */
+$("taste").value=store.get("taste")||"";
+$("taste").addEventListener("input",e=>store.set("taste",e.target.value));
+const taste=()=>$("taste").value.trim();
+function addTaste(note){const t=taste();$("taste").value=(t?t+"\n":"")+"- "+note;store.set("taste",$("taste").value);}
+
+/* ---------- posts, made one at a time ---------- */
+const DEMO_POSTS=[
+ {pillar:"Education",layout:"guide",kicker:"A guide to lapels",headline:"Notch, peak or shawl?",accent:"shawl?",caption:"Three lapels, three moods. Notch for everyday, peak for presence, shawl for black tie. Not sure which suits you? Ask us at your fitting.",hashtags:["lapels","tailoring","suitstyle","madetomeasure","menswear"],photo:"Three suits on dress forms showing each lapel"},
+ {pillar:"Craft",layout:"headline",headline:"A jacket made properly cannot be rushed",accent:"made properly",caption:"Every jacket on this rail has been cut, basted and fitted by hand. That takes time, and it's time well spent. Book your fitting through the link in our bio.",hashtags:["craftsmanship","tailoring","bespoke","handmade","menswear"],photo:"A rail of finished jackets in the workroom"},
+ {pillar:"Service",layout:"badge",headline:"7 Day Express",number:"7",body:"Made-to-measure service",cta:"Book through the link in our bio",caption:"Need a suit fast? Our express made-to-measure service has you covered in 7 days, without cutting corners. Places are limited each week.",hashtags:["madetomeasure","express","suits","tailoring","weddingseason"],photo:"Close-up of a jacket sleeve or a dark suit"},
+ {pillar:"Heritage",layout:"heritage",headline:"Stitching trust for generations",accent:"Stitching",caption:"Our story started with one tailor, one table and a lot of patience. The same care goes into every stitch today.",hashtags:["heritage","tailoring","history","craftsmanship","familybusiness"],photo:"An old black-and-white photo of the shop or a tailor"},
+ {pillar:"Lifestyle",layout:"headline",headline:"No time limit. Ever.",accent:"Ever.",caption:"A well-made coat doesn't go out of style. Built to fit now and to be altered for years to come.",hashtags:["overcoat","menswear","tailoring","timeless","madetomeasure"],photo:"A model in a long coat outdoors by water or an old street"},
+ {pillar:"Event",layout:"offer",headline:"Coffee talk with our master tailor",accent:"master tailor",body:"A relaxed chat about cloth, styles and fit, with coffee on us. Limited places.",cta:"Reserve your spot",caption:"Join our master tailor for coffee and a chat about cloth, cut and fit. Places are limited, so reserve yours through the link in our bio.",hashtags:["coffeetalk","tailoring","event","menswear","bespoke"],photo:"The master tailor at work, or a coffee on the cutting table"}
+];
+let posts=[];
+try{posts=JSON.parse(store.get("posts")||"[]").map(p=>({...p,copy:norm(p.copy)}));}catch{posts=[];}
+const savePosts=()=>store.set("posts",JSON.stringify(posts.slice(0,40).map(({res,...p})=>p)));
+const photoOf=p=>photos.find(f=>f.id===p.photoId)||null;
+$("size").innerHTML=Object.entries(SIZES).map(([k,v])=>`<option value="${k}">${v[2]} (${v[0]} × ${v[1]})</option>`).join("");
+$("size").value=store.get("size")||"portrait";
+$("size").onchange=e=>store.set("size",e.target.value);
+const TEAM=()=>`Your five-person team runs the back office of a tailoring shop: Mara (lead), Theo (research), Juno (writing), Ivo (review), Pia (images). Don't invent prices, dates, addresses, phone numbers, offers or reviews.\nHouse style:\n${guide()}${taste()?`\nWhat our client likes, from their feedback so far (follow it):\n${taste()}`:""}`;
+async function job(i,prompt,note,bubble,demo,summary){
+  if(state[i].pos!==AG[i].home)await walk(i,AG[i].home,"Heading to desk","On it");
+  set(i,{think:true,status:bubble,bubble});
+  const upd=post(i,"Working on it…",note);
+  try{
+    let v;
+    if(sample)v=await sample.json(`${AG[i].brief}\n${TEAM()}\n\n${prompt}`,{signal:ctrl.signal,cache:false});
+    else{await wait(1200);v=demo;}
+    upd(summary(v));return v;
+  }catch(e){upd("I couldn't finish this. "+errText(e));throw e;}
+  finally{set(i,{think:false,bubble:""});}
+}
+const one=v=>v&&typeof v==="object"?(v.post&&typeof v.post==="object"?v.post:v):null;
+async function design(p){
+  set("pia",{think:true,status:"Designing the post",bubble:"Designing"});
+  const upd=post("pia","Designing…","Design");
+  try{const ph=photoOf(p);p.res=await renderPost(p.copy,ph?ph.img:null,p.size);p.res.size=p.size;upd(`Done: "${p.copy.headline}", ${SIZES[p.size][2].toLowerCase()}${ph?", on your photo":", on a cloth background"}.`);}
+  finally{set("pia",{think:false,bubble:""});}
+}
+function start(label){ctrl=new AbortController();$("run").disabled=true;$("stop").disabled=false;document.querySelectorAll(".upd").forEach(b=>b.disabled=true);status(label);}
+function stop(e){
+  if(e){status(e?.code==="aborted"?"Stopped":errText(e));IDS.forEach(i=>set(i,{pos:AG[i].home,status:"At desk",bubble:"",think:false,away:false}));}
+  $("run").disabled=false;$("stop").disabled=true;document.querySelectorAll(".upd").forEach(b=>b.disabled=false);ctrl=null;
+}
+function status(t){$("status").textContent=t;}
+
+async function makePost(brief,size){
+  start("Pia is finishing with the photos");
+  post("you",brief||"Make the next post.","New post");
+  const recent=posts.slice(0,8).map(p=>`${p.copy.pillar}: "${p.copy.headline}"`);
+  const B=brief?`The owner wants this post: """${brief}"""`:`The owner gave no brief: pick the kind of post from the weekly mix that we've done least recently.`;
+  try{
+    await describing;
+    const avail=freshPhotos(),P=`The owner's new photos (index: what's in it): ${photoList(avail)}.`;
+    status("Mara is planning");
+    const plan=await turn("mara",`${B}\n${P}\n${recent.length?"Our recent posts, newest first: "+recent.join(" | ")+"\n":""}Plan the next Instagram post (${SIZES[size][2]}). In under 70 words: the kind of post, the idea, which photo index fits (or none), and one line for the team.`,"Plan","Planning");
+    await walk("mara",[4.4,5.9],"Briefing Theo","Over to you");await walk("mara",AG.mara.home,"At desk","");
+    status("Theo is finding the angle");
+    const notes=await turn("theo",`${B}\nMara's plan:\n${plan}\nGive Juno the angle in under 80 words: what's worth saying, a hook, and any seasonal moment this week. Mark anything you're unsure of.`,"Angle","Researching");
+    await walk("theo",[8.4,11.3],"Handing notes to Juno","Notes for you");await walk("theo",AG.theo.home,"At desk","");
+    status("Juno is writing");
+    const demo=DEMO_POSTS[posts.length%DEMO_POSTS.length];
+    const draft=one(await job("juno",`${B}\n${P}\n${reviewNote()}\nMara's plan:\n${plan}\nTheo's angle:\n${notes}\nWrite the post. Add "pillar" (the kind of post) and "photoIndex" (the owner's photo that fits best, or -1). The image is ${SIZES[size][2]}.\n${SPEC}\nReturn one JSON object only.`,
+      "Draft","Writing",{...demo,photoIndex:avail.length?0:-1},v=>{const d=one(v);if(!d||!d.headline)throw {message:"The draft came back empty"};return `Draft: "${d.headline}"\n${d.caption||""}`;}));
+    await walk("juno",[20.4,11.3],"Asking Ivo for a review","Review this?");await walk("juno",AG.juno.home,"At desk","");
+    status("Ivo is reviewing");
+    const rev=await job("ivo",`${B}\n${reviewNote()}\nJuno's draft:\n${JSON.stringify(draft)}\nReview it against the house style, the client's taste and the brief: headline voice and length, the accent word is in the headline, the layout suits the post, the caption ends with a call to action, 5 to 8 hashtags, a review post quotes only a real review from the owner's list, and nothing is invented. Fix what needs fixing yourself. Return JSON only: {"notes":"1 to 3 short lines on what you changed","post":{the final post, same fields}}`,
+      "Review","Reviewing",{notes:"Checked it against the house style and the client's taste. Good to go.",post:draft},v=>String(v?.notes||"Reviewed and approved."));
+    const fin=norm(one(rev)?.headline?one(rev):draft);
+    await walk("ivo",[17.6,11.3],"Handing it to Pia","Over to you");await walk("ivo",AG.ivo.home,"At desk","");
+    status("Pia is designing");
+    const p={id:Date.now().toString(36),created:Date.now(),size,brief,photoId:avail[fin.photoIndex]?avail[fin.photoIndex].id:null,copy:fin,version:1};
+    await design(p);
+    posts.unshift(p);savePosts();syncUsed();buildPosts();
+    status("Your post is ready.");
+    $("postsSec").scrollIntoView({behavior:calm.matches?"auto":"smooth",block:"start"});
+    stop();
+  }catch(e){stop(e);}
+}
+
+async function revise(p,fb){
+  start("Juno is updating the post");
+  post("you",`About "${p.copy.headline}": ${fb}`,"Client feedback");
+  addTaste(fb);
+  const sizeHint=/story/i.test(fb)?"story":/square/i.test(fb)?"square":/portrait/i.test(fb)?"portrait":null;
+  if(sizeHint)p.size=sizeHint;
+  try{
+    await describing;
+    const pool=[photoOf(p),...freshPhotos()].filter(Boolean),cur=pool.findIndex(f=>f.id===p.photoId);
+    const draft=one(await job("juno",`The client's feedback on this post: """${fb}"""\nThe post now:\n${JSON.stringify({...p.copy,photoIndex:cur})}\nThe photos it can use (index: what's in it): ${photoList(pool)}.\n${reviewNote()}\nUpdate the post to answer the feedback. Change only what the feedback asks for or clearly implies; you may change the layout or photoIndex if that's what it needs.\n${SPEC}\nReturn one JSON object only, with "pillar" and "photoIndex" too.`,
+      "Update","Updating",{...p.copy,photoIndex:cur,layout:Object.keys(LAYOUTS)[(Object.keys(LAYOUTS).indexOf(p.copy.layout)+1)%7]},v=>{const d=one(v);if(!d||!d.headline)throw {message:"The update came back empty"};return `Updated: "${d.headline}"`;}));
+    await walk("juno",[20.4,11.3],"Asking Ivo to check","Check this?");await walk("juno",AG.juno.home,"At desk","");
+    const rev=await job("ivo",`The client's feedback: """${fb}"""\nJuno's update:\n${JSON.stringify(draft)}\nCheck the update answers the feedback and still follows the house style. Fix anything yourself. Return JSON only: {"notes":"1 or 2 short lines","post":{the final post}}`,
+      "Check","Checking",{notes:"The feedback is covered and it's still on style.",post:draft},v=>String(v?.notes||"Looks right."));
+    const fin=norm(one(rev)?.headline?one(rev):draft);
+    p.copy=fin;p.photoId=pool[fin.photoIndex]?pool[fin.photoIndex].id:(fin.photoIndex===-1?null:p.photoId);p.version=(p.version||1)+1;
+    await walk("ivo",[17.6,11.3],"Handing it to Pia","Over to you");await walk("ivo",AG.ivo.home,"At desk","");
+    await design(p);
+    savePosts();syncUsed();buildPosts();status("Post updated.");stop();
+  }catch(e){stop(e);}
+}
+
+function buildPosts(){
+  if(!posts.length){$("posts").innerHTML=`<p class="empty">No posts yet. Hand Pia your photos, choose a size and press "Make the post".</p>`;return;}
+  $("posts").innerHTML=posts.map((p,k)=>`<article class="wc" id="pc-${k}"><h3></h3><div class="pl when"></div><div class="wait">Pia is drawing this one…</div><button type="button" class="zoom" hidden aria-label="View this post full size"><img alt=""></button>
+    <label class="pl">Image size <select class="sz"></select></label>
+    <div class="cap"></div><div class="pl photo"></div>
+    <div class="row"><button type="button" data-a="dl">Download</button><button type="button" data-a="cp">Copy caption</button><button type="button" data-a="rm">Delete</button></div>
+    <label for="fb-${k}" class="pl">What should change?</label>
+    <textarea id="fb-${k}" rows="2" placeholder="For example: my client wants it warmer and with less text"></textarea>
+    <button type="button" class="upd" data-a="up">Update post</button><div class="pl note"></div></article>`).join("");
+  posts.forEach((p,k)=>{const c=$("pc-"+k);
+    c.querySelector("h3").textContent=`${p.copy.pillar||LAYOUTS[p.copy.layout]}${p.version>1?", version "+p.version:""}`;
+    c.querySelector(".when").textContent="Made "+new Date(p.created).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"});
+    c.querySelector(".cap").textContent=fullCaption(p.copy);
+    c.querySelector(".photo").textContent=photoOf(p)?"":(p.copy.photo?"A photo that would suit it: "+p.copy.photo:"");
+    const sz=c.querySelector(".sz");sz.innerHTML=Object.entries(SIZES).map(([a,v])=>`<option value="${a}">${v[2]}</option>`).join("");sz.value=p.size;
+    sz.onchange=async e=>{p.size=e.target.value;savePosts();p.res=null;showCard(k);};
+    c.querySelector('[data-a="dl"]').onclick=()=>p.res&&dlPost(p.res,c.querySelector(".note"));
+    c.querySelector('[data-a="cp"]').onclick=e=>copyText(fullCaption(p.copy),e.target,"Copy caption");
+    const rm=c.querySelector('[data-a="rm"]');rm.onclick=()=>{if(rm.dataset.sure){posts.splice(posts.indexOf(p),1);savePosts();syncUsed();buildPosts();}else{rm.dataset.sure="1";rm.textContent="Click again to delete";setTimeout(()=>{delete rm.dataset.sure;rm.textContent="Delete";},3000);}};
+    const up=c.querySelector('[data-a="up"]');up.disabled=!!ctrl;
+    up.onclick=()=>{const fb=$("fb-"+k).value.trim();if(!fb){c.querySelector(".note").textContent="Tell the team what to change first.";$("fb-"+k).focus();return;}if(!ctrl)revise(p,fb);};
+    showCard(k);});
+}
+async function showCard(k){
+  const p=posts[k];if(!p)return;const c=$("pc-"+k);
+  if(!p.res||p.res.size!==p.size){const ph=photoOf(p);p.res=await renderPost(p.copy,ph?ph.img:null,p.size);p.res.size=p.size;}
+  if(c){const im=c.querySelector(".zoom img"),zb=c.querySelector(".zoom");im.src=p.res.url;im.alt=p.copy.headline;im.style.aspectRatio=`${SIZES[p.size][0]}/${SIZES[p.size][1]}`;zb.hidden=false;zb.onclick=()=>openLB(p,zb);c.querySelector(".wait").hidden=true;}
+}
+
+
+/* full-size viewer with zoom */
+let lbP=null,lbFrom=null,lz=1,lfit=1,ltx=0,lty=0;
+const lbApply=()=>{$("lbImg").style.transform=`translate(-50%,-50%) translate(${ltx}px,${lty}px) scale(${lz})`;$("lbPct").textContent=Math.round(lz*100)+"%";};
+function lbFitNow(){const st=$("lbStage"),[w,h]=SIZES[lbP.size];lfit=Math.min(st.clientWidth/w,st.clientHeight/h)*.94;lz=lfit;ltx=lty=0;lbApply();}
+function openLB(p,from){
+  if(!p.res)return;lbP=p;lbFrom=from;const [w,h]=SIZES[p.size],im=$("lbImg");
+  im.src=p.res.url;im.alt=p.copy.headline;im.style.width=w+"px";im.style.height=h+"px";$("lbNote").textContent="";
+  $("lb").hidden=false;document.body.style.overflow="hidden";requestAnimationFrame(lbFitNow);$("lbX").focus();
+}
+function closeLB(){$("lb").hidden=true;document.body.style.overflow="";lbFrom?.focus();}
+const lbZoom=f=>{lz=Math.min(4,Math.max(lfit*.5,lz*f));lbApply();};
+$("lbIn").onclick=()=>lbZoom(1.25);$("lbOut").onclick=()=>lbZoom(1/1.25);
+$("lbFit").onclick=lbFitNow;$("lb1").onclick=()=>{lz=1;ltx=lty=0;lbApply();};
+$("lbX").onclick=closeLB;$("lbDl").onclick=()=>lbP&&dlPost(lbP.res,$("lbNote"));
+$("lbStage").addEventListener("wheel",e=>{e.preventDefault();lbZoom(e.deltaY<0?1.12:1/1.12);},{passive:false});
+$("lbStage").addEventListener("dblclick",()=>{if(Math.abs(lz-lfit)<.01){lz=1;lbApply();}else lbFitNow();});
+{let drag=null,moved=false;const st=$("lbStage");
+ st.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY};moved=false;st.setPointerCapture(e.pointerId);st.classList.add("drag");});
+ st.addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;ltx+=dx;lty+=dy;drag={x:e.clientX,y:e.clientY};lbApply();});
+ const end=e=>{if(drag&&!moved&&e.target===st)closeLB();drag=null;st.classList.remove("drag");};
+ st.addEventListener("pointerup",end);st.addEventListener("pointercancel",()=>{drag=null;st.classList.remove("drag");});}
+document.addEventListener("keydown",e=>{if($("lb").hidden)return;
+  if(e.key==="Escape")closeLB();else if(e.key==="+"||e.key==="=")lbZoom(1.25);else if(e.key==="-")lbZoom(1/1.25);else if(e.key==="0")lbFitNow();
+  else if(e.key==="Tab"){const f=[...$("lb").querySelectorAll("button")];const i=f.indexOf(document.activeElement);if(e.shiftKey&&i<=0){e.preventDefault();f[f.length-1].focus();}else if(!e.shiftKey&&i===f.length-1){e.preventDefault();f[0].focus();}}});
+addEventListener("resize",()=>{if(!$("lb").hidden)lbFitNow();});
+
+/* demo script, used only when Claude isn't available */
+const DEMO={
+"Plan":"Next up: an education post, a guide to lapels. Use the photo of the suits if we have one. Theo, give Juno a simple hook; Ivo, keep it short and on style.",
+"Angle":"- Most customers don't know the lapel names, so ask it as a question\n- Hook: each lapel sets a different mood\n- Wedding season is a good moment for peak lapels",
+"Kick-off":"Seven posts this week, one of each kind:\nMon: education, a guide to lapels\nTue: craft, why a good jacket takes time\nWed: service, 7 day express made-to-measure\nThu: a customer review\nFri: heritage, our story\nSat: lifestyle, a coat outdoors\nSun: event, coffee with our master tailor\nTheo: angles and hooks for each. Juno: words and captions. Ivo: check them against the house style. Pia: set them on the best photos.",
+"Angles for the week":"- Lapels: most customers don't know the names; make it a simple question\n- Craft: show the time it takes, not the price\n- Express: speed without cutting corners; places are limited\n- Review: only if we have a real one from the list\n- Heritage: years of trust, old photos if we have them\n- Lifestyle: coats are in season now\n- Event: keep it relaxed, limited places",
+"Sign-off":"This week's seven posts are ready to download, each with its caption. Any post without a photo is on a cloth background; a photo of the workroom and one of a finished coat would help most next week.",
+"Reply":"Happy to help. In the demo I can only give this canned reply; once Claude is connected I'll answer your actual question."
+};
+
+(async()=>{
+  try{sample=window.claude?.use?await window.claude.use("sample"):null;}catch{sample=null;}
+  if(sample){try{canSee=!!(await sample.limits())?.images;}catch{canSee=false;}}
+  try{downloads=window.claude?.use?await window.claude.use("downloads"):null;}catch{downloads=null;}
+  $("dot").classList.toggle("on",!!sample);
+  $("modeTxt").textContent=sample?"Agents think with Claude":"Demo mode: scripted replies";
+})();
+loadLibrary().then(()=>{syncUsed();buildPosts();});
+}
+</script>
+</body>
+</html>

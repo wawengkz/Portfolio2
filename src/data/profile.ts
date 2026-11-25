@@ -59,7 +59,7 @@ export const profile: Profile = {
   },
   socials: [
     { label: 'GitHub profile', href: 'https://github.com/wawengkz', iconPath: '/icons/github.svg' },
-    { label: 'LinkedIn profile', href: 'https://www.linkedin.com/in/lhenard-trinidad-21a99b210/', iconPath: '/icons/linkedin.svg' },
+    { label: 'LinkedIn profile', href: 'https://linkedin.com/in/lhenard-trinidad', iconPath: '/icons/linkedin.svg' },
     { label: 'Email Lhenard', href: 'mailto:trinidadlhenard10@gmail.com', iconPath: '/icons/gmail.svg' },
   ],
 }

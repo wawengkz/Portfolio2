@@ -59,7 +59,7 @@ export default function HomeBento() {
   return (
     <nav className="bento" aria-label="Explore the portfolio">
       <Link to="/projects" className="bento__card bento__card--projects">
-        <CardHead Icon={FolderOpen} title="Projects" desc="Eight builds: web, mobile, backend and DevOps." />
+        <CardHead Icon={FolderOpen} title="Projects" desc="Nine builds: web, mobile, backend, DevOps and an interactive demo." />
         <div className="bento__media bento__reel" aria-hidden="true">
           <div className="bento__reel-track">
             {[...PROJECT_SHOTS, ...PROJECT_SHOTS].map((p, i) => (

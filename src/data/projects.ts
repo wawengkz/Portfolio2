@@ -27,6 +27,17 @@ const ff = (n: number, ext = 'png') => `/projects/familyflow/0${n}.${ext}`
 
 export const projects: Project[] = [
   {
+    id: 'agent-office',
+    title: 'Agent Office',
+    kicker: 'Interactive demo',
+    blurb: 'Pixel-art office where five AI agents walk around, play games and make posts.',
+    description:
+      'An isometric pixel-art office with five agents (lead, researcher, writer, reviewer, designer) that walk around, play arcade and PS5, and work together to plan, write, review and design Instagram posts in a house style. This live demo runs in demo mode with scripted replies.',
+    tech: ['JavaScript', 'HTML', 'CSS'],
+    cover: '/projects/agent-office/01.jpg',
+    links: [{ label: 'Open live demo', href: '/agent-office/index.html' }],
+  },
+  {
     id: 'pettapp',
     title: 'PetTapp',
     kicker: 'Mobile + web',
@@ -64,7 +75,7 @@ export const projects: Project[] = [
   {
     id: 'familyflow',
     title: 'FamilyFlow',
-    kicker: 'Mobile',
+    kicker: 'Capstone',
     blurb: 'Native Android app for household tasks, chat, calendar and budgets.',
     description:
       'A native Android app built with Kotlin for household task management. Families sign in with a household PIN, split chores across members, and personalize their home screen with a drag-and-drop layout. Includes real-time chat with search, an event calendar, and budget tracking, built with Agile/Scrum sprints and full test-case coverage across auth, UI, navigation, and chat.',

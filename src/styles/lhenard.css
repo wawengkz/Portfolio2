@@ -218,3 +218,14 @@
 
 /* Short desktops: the rail's copyright would clip under the accessibility button */
 @media (min-width: 1100px) and (max-height: 780px) { .rail__copy { display: none; } }
+
+/* Projects scrolls: nine cards, three across on desktop */
+.pjgrid, .pjgrid .pgrid__glass { height: auto; }
+.pjgrid { display: flex; }
+.pjgrid .pgrid__glass { display: block; }
+.pjgrid__grid { height: auto; }
+@media (min-width: 1100px) {
+  .pjgrid__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: auto; }
+  .pjcard__cover { aspect-ratio: 16 / 10; flex: none; }
+  .pjcard__blurb { -webkit-line-clamp: 3; }
+}

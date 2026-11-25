@@ -47,7 +47,7 @@ export function HomeStats() {
 }
 
 const TILES = [
-  { n: '01', label: 'Projects', to: '/projects', title: 'Things I’ve built', desc: 'Eight projects, web to mobile to DevOps.', img: '/projects/pettapp/01.jpg' },
+  { n: '01', label: 'Projects', to: '/projects', title: 'Things I’ve built', desc: 'Nine projects, web to mobile to DevOps.', img: '/projects/pettapp/01.jpg' },
   { n: '02', label: 'Experience', to: '/experience', title: 'Roles and stack', desc: 'Rails intern, IT support, Web3 developer.', Icon: Briefcase },
   { n: '03', label: 'Certificates', to: '/certificates', title: 'Always learning', desc: 'Seven Coursera courses from 2026.', Icon: Medal, accent: true },
   { n: '04', label: 'About', to: '/about', title: `Hi, I'm ${profile.firstName}.`, desc: 'Full-stack developer in Calamba, Laguna.', img: '/about/fan-2.jpg' },
