@@ -75,7 +75,7 @@ export const projects: Project[] = [
   {
     id: 'familyflow',
     title: 'FamilyFlow',
-    kicker: 'Capstone',
+    kicker: 'Mobile',
     blurb: 'Native Android app for household tasks, chat, calendar and budgets.',
     description:
       'A native Android app built with Kotlin for household task management. Families sign in with a household PIN, split chores across members, and personalize their home screen with a drag-and-drop layout. Includes real-time chat with search, an event calendar, and budget tracking, built with Agile/Scrum sprints and full test-case coverage across auth, UI, navigation, and chat.',
